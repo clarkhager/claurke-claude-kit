@@ -1,6 +1,6 @@
 # Operating manual
 
-The canonical reference for running this system day-to-day. Read this before changing anything you don't understand. Six sections: daily operations, verification, update workflows, troubleshooting, recovery scenarios, decision log.
+The canonical reference for running this system day-to-day. Read this before changing anything you don't understand. Seven sections: daily operations, recommended setup checklist, verification, update workflows, troubleshooting, recovery scenarios, decision log.
 
 ---
 
@@ -32,7 +32,55 @@ When a Cowork conversation produces a build task:
 
 ---
 
-## 2. Verification
+## 2. Recommended setup checklist (new machine, new account, new colleague)
+
+On a fresh install, beyond running bootstrap.sh, populate your personal overlay using the templates in `personal/templates/`:
+
+### Step 1: Voice profile (optional)
+
+Copy `personal/templates/voice-profile-template.md` into your personal overlay as `voice-profile.md` and fill in your sections (salutation, sign-off, banned phrases, voice examples).
+
+Skip this step if your Claude account's personal preferences already cover voice rules adequately. The voice profile is for richer detail beyond preferences, not a replacement.
+
+### Step 2: MCP list
+
+Copy `personal/templates/mcp-list-template.md` into your personal overlay as `mcp-list.md`. The template is organized by:
+
+- **Always install**: Gmail, Slack, Notion, GitHub, Atlassian/Jira, Postman, Claude in Chrome, PDF Viewer
+- **Development projects**: Railway, Supabase, Vercel, Clerk, Sentry, Apify, Jam, Desktop Commander
+- **Design projects**: Figma, Canva, Replicate, Higgsfield, Gemini Image
+- **Personal additions**: your space for niche or company-specific MCPs
+
+Connect each MCP in your Claude account: Cowork > Settings > Connectors, or Claude Code via `.mcp.json` / settings.json. MCPs are account-bound, so installing on one machine syncs to all your machines on that account.
+
+### Step 3: Skills list
+
+Copy `personal/templates/skills-list-template.md` into your personal overlay as `skills-list.md`. The template lists:
+
+- **Required**: humanizer (voice rule dependency), skill-creator (skill management rule dependency)
+- **Always install**: docx, xlsx, pptx, pdf, doc-coauthoring, typography, ui-ux-pro-max
+- **Development projects**: mcp-builder, webapp-testing
+- **Design projects**: theme-factory, web-artifacts-builder
+- **Domain-specific**: bizzabo-api-toolkit (relevant when working with Bizzabo)
+- **Personal additions**: skills you've built via /skill-creator for your specific workflow
+
+Install existing third-party skills via the marketplace UI (Cowork) or `claude plugin install` (Claude Code). Create new skills via the /skill-creator skill, per the Skill management rule in rules-kit CLAUDE.md.
+
+### Step 4: Manual Cowork steps
+
+The bootstrap script prints these but they're worth listing here too:
+
+1. Cowork > Settings > Global Instructions: paste contents of `~/.claude/CLAUDE.md`
+2. Cowork > Settings > Connectors: connect MCPs per your list
+3. Cowork > Settings > Plugins: install skills per your list (verify Anthropic Skills bundle for humanizer)
+
+### Step 5: Verify
+
+Run Test 1 from the Verification section below in a fresh Cowork session to confirm the rules are loaded and the system is responding correctly.
+
+---
+
+## 3. Verification
 
 Use these prompts to confirm the system is loaded correctly. Run periodically (especially after fresh installs or kit updates) to catch silent failures.
 
@@ -63,6 +111,7 @@ After a session in Claude Code with file edits, check `~/.claude/backups/` for a
 ### Signs the rules aren't firing
 
 Flag these in any session:
+
 - Claude opens with validation ("great question," "you're absolutely right") without citing a specific claim
 - Claude buries flaws after agreement rather than leading with them
 - Claude commits to a diagnosis without three labeled hypotheses (in diagnostic mode)
@@ -73,7 +122,7 @@ Any of these mean the rules aren't loaded. Re-run Test 1 and check the deploymen
 
 ---
 
-## 3. Update workflows
+## 4. Update workflows
 
 ### When a kit changes
 
@@ -108,7 +157,7 @@ Skills and MCPs are account-level, not in the kits. Install in each Claude accou
 - Skills: Cowork > Settings > Plugins, or `claude plugin install` in Claude Code
 - MCPs: Cowork > Settings > Connectors, or `.mcp.json` in Claude Code
 
-If the new skill or MCP is something you want documented for your future self or colleagues, add to your personal overlay's `mcp-list.md` or `skills-list.md`.
+Update your personal overlay's `mcp-list.md` or `skills-list.md` to record the addition. This keeps your overlay current as your stack evolves.
 
 ### When memory-kit's templates change
 
@@ -116,13 +165,14 @@ The template changes apply to new projects via `scripts/new-project.sh`. Existin
 
 ---
 
-## 4. Troubleshooting
+## 5. Troubleshooting
 
 ### Rules aren't firing in Cowork
 
 Most likely: Settings > Global Instructions has stale content, or never had the rules pasted.
 
 Fix:
+
 1. Open `~/.claude/CLAUDE.md` on disk
 2. Verify it has the current rules-kit content (compare to GitHub if unsure)
 3. Copy entire contents
@@ -134,6 +184,7 @@ Fix:
 Most likely: `~/.claude/CLAUDE.md` doesn't exist, has stale content, or has wrong permissions.
 
 Fix:
+
 1. Check the file exists: `ls -la ~/.claude/CLAUDE.md`
 2. Verify content matches rules-kit's latest
 3. Re-run `bash ~/.claude/claurke-kit/bootstrap.sh --update` if stale
@@ -142,6 +193,7 @@ Fix:
 ### Hooks not firing in Claude Code
 
 Check:
+
 1. `~/.claude/hooks/pre-compact.sh` and `memory-check.sh` exist and are executable (`ls -la ~/.claude/hooks/`)
 2. `~/.claude/settings.json` contains hook registrations under `hooks.PreCompact` and `hooks.Stop`
 3. If either missing, re-run memory-kit's deploy: `bash ~/.claude/memory-kit/deploy.sh`
@@ -151,6 +203,7 @@ Check:
 This is expected behavior, not a bug. Cowork doesn't fire user hooks reliably per anthropics/claude-code issues #27398 and #40495. The hook scripts are installed but never run.
 
 For Cowork sessions where you'd want hook-based safety (compaction backup, memory-update warnings), do those manually:
+
 - Note important state to MEMORY.md or STATUS.md before ending the session
 - Don't rely on the kit for automated backup in Cowork
 
@@ -167,6 +220,7 @@ Lazy loading via filename reference is unreliable in Cowork. If a side doc's con
 Most likely: skill isn't installed in this account.
 
 Fix:
+
 1. Run `bash ~/.claude/claurke-kit/scripts/install-humanizer.sh` to detect
 2. If not detected, install via Cowork > Settings > Plugins (Anthropic Skills bundle), or Claude Code `claude plugin install anthropic-skills`
 3. Verify by asking Claude to draft something and observe whether humanizer is invoked
@@ -176,6 +230,7 @@ Fix:
 Most likely: MCP isn't connected in this account.
 
 Fix:
+
 - Cowork: Settings > Connectors > connect the MCP
 - Claude Code: configure `.mcp.json` or settings.json
 - Each MCP requires OAuth or API key per account; not portable across accounts without re-auth
@@ -185,13 +240,14 @@ Fix:
 Most likely: project files aren't in the folder Claude is loading from.
 
 Fix:
+
 1. Verify CLAUDE.md, MEMORY.md, STATUS.md exist at the project root
 2. In Cowork: verify the folder is connected as a workspace (Settings > Workspaces)
 3. In Claude Code: verify you're running `claude` from inside the project folder (not a parent)
 
 ---
 
-## 5. Recovery scenarios
+## 6. Recovery scenarios
 
 ### Accidentally deleted personal/ overlay
 
@@ -210,11 +266,13 @@ The deploy script backs up the existing file before overwriting, so you'll have 
 ### Bootstrap fails
 
 Most common causes:
+
 - `git` or `gh` not installed (prereq check at start of bootstrap will catch this)
 - No network access to GitHub
 - Permission issues writing to `~/.claude/`
 
 Fix:
+
 1. Install prereqs (`brew install gh git` on macOS)
 2. Verify network: `gh repo view clarkhager/claurke-claude-kit`
 3. Verify permissions: `ls -la ~/.claude`; should be owned by you
@@ -249,7 +307,7 @@ The broken push will propagate to any machine that runs `--update`. Roll back:
 
 ---
 
-## 6. Decision log
+## 7. Decision log
 
 Why the system is the way it is. Read this before second-guessing a structural choice.
 
@@ -294,16 +352,15 @@ It's not a silver bullet, but it's measurably better. The rules-kit CLAUDE.md us
 
 Silent failures of dependencies are the worst kind. If the Voice rule references a humanizer skill that isn't installed, the voice-rule pass silently doesn't run; you only find out by noticing draft quality drops. The deploy script's auto-detection at install time surfaces missing dependencies before they cause silent failures.
 
-### Why no skill (yet) for system documentation
+### Why the skill management rule (use /skill-creator for skills)
 
-We considered building a "claurke-claude-best-practice" skill that would give Claude on-demand access to this operating manual. Deferred because:
+Claude (especially in Cowork) has historically created skills ad-hoc - placing files in arbitrary directories, freelancing the SKILL.md structure, bypassing account-level placement. The skill-creator skill enforces best practice and ensures skills are stored at the account level so they sync across machines. Without this rule, Claude's ad-hoc behavior recreates the same fragility we're trying to avoid with the kit system itself.
 
-- This manual is the human-readable canonical source
-- The CLAUDE.md primer gives the model awareness of the system without needing skill invocation
-- Skill build + maintenance has overhead (SKILL.md description tuning, install on each account, trigger calibration)
-- If usage patterns prove the on-demand mode would help, build the skill from this manual as the source
+A paired rule covers installing existing third-party skills: those go through the Cowork plugin marketplace or `claude plugin install`, never manual file placement, for the same account-level sync reason.
 
-Reevaluate after a few weeks of real use.
+### Why the claurke-claude-best-practice skill exists
+
+Created to give Claude on-demand access to this operating manual without requiring the user to remember to reference it by name. The CLAUDE.md primer gives baseline awareness; the skill gives depth on operational queries ("how do I update," "why aren't the rules firing," "set up Claude on a new machine"). Both layers needed for the completeness goal.
 
 ---
 
