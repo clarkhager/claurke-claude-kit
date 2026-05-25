@@ -1,0 +1,18 @@
+# Personal overlay - identity files, secrets, machine-specific overrides
+personal/*
+!personal/README.md
+!personal/.gitkeep
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# Editor cruft
+.vscode/
+.idea/
+*.swp
+*.bak-*
+
+# Runtime / kit version markers (placed by deploy scripts)
+.claurke-rules-kit
+.claude-memory-kit
