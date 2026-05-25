@@ -10,6 +10,14 @@ Designed for a hybrid Cowork + Claude Code workflow. Cowork for knowledge work, 
 
 ---
 
+## Operating manual
+
+For the comprehensive guide to running this system - daily operations, verification, updates, troubleshooting, recovery scenarios, and the decision log - see **[docs/operating-manual.md](docs/operating-manual.md)**.
+
+This is the operator's reference. Read it before changing anything you don't understand. The quick-start section below gets you installed; the operating manual gets you unstuck.
+
+---
+
 ## Quick start
 
 ### On a fresh machine (mine or yours)
@@ -47,6 +55,7 @@ In `--starter` mode, the script skips the personal identity overlay so a colleag
 | `scripts/setup-mcps.sh` | Walks through MCP connection setup |
 | `scripts/new-project.sh` | Wraps memory-kit's per-project deploy for a new project |
 | `personal/` | Identity overlay (voice profile, secrets, account-specific files) - gitignored |
+| **`docs/operating-manual.md`** | **The comprehensive operator's reference. Read this when something feels off.** |
 | `docs/how-i-actually-use-this.md` | Narrative walkthrough of the workflow |
 | `docs/personal-overlay.md` | What goes in `personal/` and why |
 | `docs/new-machine-setup.md` | Checklist for setting up a new machine end-to-end |
@@ -64,7 +73,7 @@ For every Cowork session, the rules-kit CLAUDE.md is in Cowork's Settings > Glob
 
 For every Claude Code session, the same rules-kit CLAUDE.md is at `~/.claude/CLAUDE.md` (loaded automatically by Claude Code). Same project files as Cowork loads when I cd into a project directory.
 
-See `docs/how-i-actually-use-this.md` for the longer narrative.
+See `docs/how-i-actually-use-this.md` for the longer narrative, and `docs/operating-manual.md` for the operator's reference.
 
 ---
 
@@ -88,7 +97,7 @@ On a new machine, `gh repo clone clarkhager/claurke-claude-kit ~/.claude/claurke
 
 The personal overlay lives outside this repo (in a private gist or second private repo) and gets symlinked or cloned into `personal/` after bootstrap. Account-specific differences (work vs personal Claude account) live in the overlay, not the public repo.
 
-When the rules-kit or memory-kit changes, run their respective check-updates scripts. The bootstrap also runs both kits' updates if invoked with `--update`.
+When the rules-kit or memory-kit changes, run `bash ~/.claude/claurke-kit/bootstrap.sh --update`. The operating manual has the full update workflow including the Cowork re-paste rules.
 
 ---
 
