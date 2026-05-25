@@ -330,6 +330,12 @@ Research (Agent 4) showed Mathias Bynens's dotfiles pattern as the proven dual-p
 
 Fork-per-machine creates merge hell. The overlay pattern keeps one source of truth and isolates identity to a separate gitignored layer.
 
+### Why the overlay pattern instead of a fully private repo
+
+A fully private repo would solve multi-machine sync but lose the dual-purpose property. The public skeleton plus gitignored overlay lets the same repo serve both your personal sync use case and any colleague you onboard, without maintaining two parallel codebases (one public for sharing, one private for personal). The overlay collapses both needs into one repo with a clean boundary between generic skeleton and personal identity.
+
+The private-repo idea does show up in the system, but only as the backup mechanism for the overlay layer specifically (see Recovery scenarios). The kit itself stays public so colleagues can fork; identity stays in the overlay backed up to a private repo so it syncs across your own machines without leaking.
+
 ### Why hooks aren't reliable enforcement
 
 Research (the Cowork hooks investigation) confirmed: Anthropic's own knowledge-work-plugins ship zero hooks, and GitHub issues #27398 and #40495 document that Cowork's spawn flags silently exclude both plugin-scope and user-scope hooks. Hooks work in Claude Code but not Cowork.
@@ -358,7 +364,7 @@ Claude (especially in Cowork) has historically created skills ad-hoc - placing f
 
 A paired rule covers installing existing third-party skills: those go through the Cowork plugin marketplace or `claude plugin install`, never manual file placement, for the same account-level sync reason.
 
-### Why the claurke-claude-best-practice skill exists
+### Why the claurke-ops skill exists
 
 Created to give Claude on-demand access to this operating manual without requiring the user to remember to reference it by name. The CLAUDE.md primer gives baseline awareness; the skill gives depth on operational queries ("how do I update," "why aren't the rules firing," "set up Claude on a new machine"). Both layers needed for the completeness goal.
 
