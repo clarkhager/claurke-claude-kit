@@ -16,6 +16,7 @@ Useful in any context (knowledge work or development).
 | Postman | [personal / work] | API testing, collection management |
 | Claude in Chrome | [either] | Browser navigation, page interaction |
 | PDF Viewer | [either] | PDF inspection |
+| Context7 | [either] | Up-to-date library docs and API references |
 
 ## Install when starting development projects
 

@@ -46,10 +46,10 @@ Skip this step if your Claude account's personal preferences already cover voice
 
 Copy `personal/templates/mcp-list-template.md` into your personal overlay as `mcp-list.md`. The template is organized by:
 
-- **Always install**: Gmail, Slack, Notion, GitHub, Atlassian/Jira, Postman, Claude in Chrome, PDF Viewer
+- **Always install**: Gmail, Slack, Notion, GitHub, Atlassian/Jira, Postman, Claude in Chrome, PDF Viewer, Context7
 - **Development projects**: Railway, Supabase, Vercel, Clerk, Sentry, Apify, Jam, Desktop Commander
 - **Design projects**: Figma, Canva, Replicate, Higgsfield, Gemini Image
-- **Personal additions**: your space for niche or company-specific MCPs
+- **Personal additions**: your space for niche or company-specific MCPs (e.g., Spotify, Home Assistant, Amie)
 
 Connect each MCP in your Claude account: Cowork > Settings > Connectors, or Claude Code via `.mcp.json` / settings.json. MCPs are account-bound, so installing on one machine syncs to all your machines on that account.
 
@@ -57,14 +57,16 @@ Connect each MCP in your Claude account: Cowork > Settings > Connectors, or Clau
 
 Copy `personal/templates/skills-list-template.md` into your personal overlay as `skills-list.md`. The template lists:
 
-- **Required**: humanizer (voice rule dependency), skill-creator (skill management rule dependency)
+- **Required**: humanizer (voice rule dependency), skill-creator (skill management rule dependency), claurke-ops (operational knowledge skill, shipped with claurke-claude-kit and auto-installed by bootstrap.sh)
 - **Always install**: docx, xlsx, pptx, pdf, doc-coauthoring, typography, ui-ux-pro-max
 - **Development projects**: mcp-builder, webapp-testing
 - **Design projects**: theme-factory, web-artifacts-builder
 - **Domain-specific**: bizzabo-api-toolkit (relevant when working with Bizzabo)
-- **Personal additions**: skills you've built via /skill-creator for your specific workflow
+- **Personal additions**: skills you've built via /skill-creator for your specific workflow (e.g., home-assistant-best-practices for HA users)
 
 Install existing third-party skills via the marketplace UI (Cowork) or `claude plugin install` (Claude Code). Create new skills via the /skill-creator skill, per the Skill management rule in rules-kit CLAUDE.md.
+
+**Note on claurke-ops:** unlike third-party skills, claurke-ops ships with claurke-claude-kit (at `skills/claurke-ops/`). The bootstrap script copies it to `~/.claude/skills/claurke-ops/` automatically. For Cowork specifically, manual install via Settings > Plugins may also be needed - the skill files are at the bootstrap-installed path.
 
 ### Step 4: Manual Cowork steps
 
@@ -72,7 +74,7 @@ The bootstrap script prints these but they're worth listing here too:
 
 1. Cowork > Settings > Global Instructions: paste contents of `~/.claude/CLAUDE.md`
 2. Cowork > Settings > Connectors: connect MCPs per your list
-3. Cowork > Settings > Plugins: install skills per your list (verify Anthropic Skills bundle for humanizer)
+3. Cowork > Settings > Plugins: install skills per your list (verify Anthropic Skills bundle for humanizer; verify claurke-ops is recognized)
 
 ### Step 5: Verify
 
@@ -107,6 +109,14 @@ Expected: Claude announces "Switching to diagnostic mode" and produces three lab
 ### Test 4: hooks fire (Claude Code only)
 
 After a session in Claude Code with file edits, check `~/.claude/backups/` for a timestamped backup file. If the file exists with the expected structure (User Requests, Files Modified, Tools Used, Errors), the pre-compact hook fired. If missing, check `~/.claude/settings.json` has `PreCompact` hook registration and `~/.claude/hooks/pre-compact.sh` is executable.
+
+### Test 5: claurke-ops skill fires
+
+Ask: *"set up Claude on this new MacBook"*
+
+Expected: skill triggers, fetches the operating manual (or reads from local), responds with the section 2 setup checklist and section 6 lost-state recovery steps, cites the sections.
+
+If the skill doesn't fire, verify it's installed at `~/.claude/skills/claurke-ops/SKILL.md`. For Cowork, also check Settings > Plugins shows claurke-ops as installed.
 
 ### Signs the rules aren't firing
 
@@ -145,6 +155,10 @@ If the change affects the main CLAUDE.md content (rules, primer, structural piec
 3. Cowork > Settings > Global Instructions > paste, save
 
 If the change only affects side docs (claude_voice_rules.md, claude_anti_sycophancy.md, claude_coding_rules.md, claude_diagnostic_mode.md), no Cowork re-paste needed. Side docs are lazy-loaded by reference in the main file.
+
+### When claurke-ops changes
+
+The skill source lives at `skills/claurke-ops/` in claurke-claude-kit. When you push a change, run `bootstrap.sh --update` on each machine. Bootstrap refreshes the local `~/.claude/skills/claurke-ops/` from the kit's source. For Cowork, you may need to reinstall the skill via Plugins panel to pick up the new version.
 
 ### When the system primer changes (rare)
 
@@ -189,6 +203,18 @@ Fix:
 2. Verify content matches rules-kit's latest
 3. Re-run `bash ~/.claude/claurke-kit/bootstrap.sh --update` if stale
 4. Run Test 1 in a fresh `claude` session
+
+### claurke-ops skill not firing
+
+Most likely: skill isn't installed in this account, or the description isn't triggering.
+
+Fix:
+
+1. Verify install: `ls -la ~/.claude/skills/claurke-ops/SKILL.md`
+2. If missing, run `bash ~/.claude/claurke-kit/bootstrap.sh --update` to reinstall
+3. For Cowork: check Settings > Plugins shows claurke-ops; may need manual install
+4. Re-run Test 5 in a fresh session
+5. If still not firing, the description may need optimization. Run `python -m scripts.run_loop` from the skill-creator skill against `~/.claude/claurke-kit/skills/claurke-ops/evals/trigger-eval.json`
 
 ### Hooks not firing in Claude Code
 
@@ -367,6 +393,10 @@ A paired rule covers installing existing third-party skills: those go through th
 ### Why the claurke-ops skill exists
 
 Created to give Claude on-demand access to this operating manual without requiring the user to remember to reference it by name. The CLAUDE.md primer gives baseline awareness; the skill gives depth on operational queries ("how do I update," "why aren't the rules firing," "set up Claude on a new machine"). Both layers needed for the completeness goal.
+
+### Why claurke-ops is shipped in the kit repo and auto-installed by bootstrap
+
+Third-party skills go through the marketplace install path. claurke-ops is ours, lives in the kit, and should never drift from the operating manual it surfaces. Shipping it in `skills/claurke-ops/` in claurke-claude-kit means it versions with the kit; bootstrap.sh copies it to `~/.claude/skills/claurke-ops/` so Claude Code picks it up automatically. For Cowork, a manual Plugins-panel install may also be needed because Cowork's plugin system is account-level and doesn't observe filesystem changes directly.
 
 ---
 

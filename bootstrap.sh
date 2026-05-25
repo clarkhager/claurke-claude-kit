@@ -8,6 +8,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CLAUDE_DIR="$HOME/.claude"
 RULES_KIT_DIR="$CLAUDE_DIR/rules-kit"
 MEMORY_KIT_DIR="$CLAUDE_DIR/memory-kit"
+SKILLS_DIR="$CLAUDE_DIR/skills"
 
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
@@ -71,6 +72,18 @@ if [ "$MODE" = "update" ]; then
   fi
 
   echo ""
+  print_step "Updating claurke-claude-kit (this repo)..."
+  git -C "$SCRIPT_DIR" pull --ff-only origin main || print_warn "claurke-claude-kit update failed"
+
+  # Refresh claurke-ops skill from the updated kit
+  if [ -d "$SCRIPT_DIR/skills/claurke-ops" ]; then
+    mkdir -p "$SKILLS_DIR"
+    rm -rf "$SKILLS_DIR/claurke-ops"
+    cp -r "$SCRIPT_DIR/skills/claurke-ops" "$SKILLS_DIR/"
+    print_ok "claurke-ops skill refreshed"
+  fi
+
+  echo ""
   print_ok "Updates done."
   exit 0
 fi
@@ -103,6 +116,19 @@ clone_kit "claurke-memory-kit" "$MEMORY_KIT_DIR" "memory-kit"
 echo ""
 print_step "Deploying rules-kit at the global level..."
 bash "$RULES_KIT_DIR/deploy.sh" --global
+
+# --- Install claurke-ops skill (shipped with this kit) ---
+echo ""
+print_step "Installing claurke-ops skill..."
+if [ -d "$SCRIPT_DIR/skills/claurke-ops" ]; then
+  mkdir -p "$SKILLS_DIR"
+  rm -rf "$SKILLS_DIR/claurke-ops"
+  cp -r "$SCRIPT_DIR/skills/claurke-ops" "$SKILLS_DIR/"
+  print_ok "claurke-ops installed to $SKILLS_DIR/claurke-ops"
+  print_warn "For Cowork: claurke-ops may also need manual install via Settings > Plugins. The skill files are at $SKILLS_DIR/claurke-ops/"
+else
+  print_warn "claurke-ops source not found at $SCRIPT_DIR/skills/claurke-ops (kit may be outdated; run git pull)"
+fi
 
 # --- Skill check ---
 echo ""
@@ -153,11 +179,15 @@ cat <<EOF
    Save.
 
 2. Open Cowork app > Settings > Connectors
-   Connect the MCPs you use (Gmail, Slack, Notion, Calendar, etc.)
+   Connect the MCPs you use per your personal mcp-list.md.
+   Always-install for any user: Gmail, Slack, Notion, GitHub, Atlassian/Jira,
+   Postman, Claude in Chrome, PDF Viewer, Context7.
    These connections are account-bound and can't be scripted.
 
 3. Open Cowork app > Settings > Plugins
    Verify the Anthropic Skills bundle is installed (for humanizer skill).
+   Verify claurke-ops appears in your installed skills (manual install may be
+   needed; the skill files are at $SKILLS_DIR/claurke-ops/).
    Install any additional plugins you want active in Cowork.
 
 ============================================
