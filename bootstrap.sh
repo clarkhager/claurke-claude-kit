@@ -149,10 +149,16 @@ if [ "$MODE" = "personal" ]; then
   else
     cat <<EOF
 Personal overlay is empty. To populate:
-  1. Place your voice profile, identity files, account-specific overrides in $SCRIPT_DIR/personal/
-  2. The directory is gitignored, so contents stay local to this machine
-  3. For multi-machine sync of the overlay, keep it in a separate private repo or gist
-  4. See docs/personal-overlay.md for the full pattern
+  1. Copy templates into the overlay:
+       cp personal/templates/voice-profile-template.md         personal/voice-profile.md
+       cp personal/templates/personal-preferences-template.md  personal/personal-preferences.md
+       cp personal/templates/mcp-list-template.md              personal/mcp-list.md
+       cp personal/templates/skills-list-template.md           personal/skills-list.md
+  2. Edit each file with your specific content.
+  3. voice-profile.md is canonical: rules-kit's Voice section loads it by reference at draft time.
+  4. personal-preferences.md is the source you paste into Settings > General > Instructions for Claude.
+  5. The personal/ directory is gitignored. For multi-machine sync, keep it in a separate private repo or gist.
+  6. See docs/personal-overlay.md and docs/operating-manual.md section 1 (Layering model) for the full pattern.
 EOF
   fi
 else
@@ -162,8 +168,8 @@ To make this kit yours:
   1. Fork the three repos: claurke-rules-kit, claurke-memory-kit, claurke-claude-kit
   2. Update bootstrap.sh and scripts to reference your forks instead of clarkhager/*
   3. Customize the rules in your fork of rules-kit if needed
-  4. Create your own personal/ overlay with your voice profile and identity files
-  5. See docs/personal-overlay.md and docs/how-i-actually-use-this.md for guidance
+  4. Create your own personal/ overlay with your voice profile, personal preferences, and identity files
+  5. See docs/personal-overlay.md, docs/operating-manual.md section 1, and docs/how-i-actually-use-this.md for guidance
 EOF
 fi
 
@@ -174,17 +180,22 @@ echo "Cowork-specific manual steps (not scriptable):"
 echo "============================================"
 cat <<EOF
 
-1. Open Cowork app > Settings > Global Instructions
+1. Open Cowork app > Settings > Cowork > Global Instructions
    Paste the contents of $CLAUDE_DIR/CLAUDE.md
    Save.
 
-2. Open Cowork app > Settings > Connectors
+2. Open Cowork app > Settings > General > Instructions for Claude
+   Paste the contents of $SCRIPT_DIR/personal/personal-preferences.md
+   (Or copy from personal/templates/personal-preferences-template.md and fill in)
+   Save.
+
+3. Open Cowork app > Settings > Connectors
    Connect the MCPs you use per your personal mcp-list.md.
    Always-install for any user: Gmail, Slack, Notion, GitHub, Atlassian/Jira,
    Postman, Claude in Chrome, PDF Viewer, Context7.
    These connections are account-bound and can't be scripted.
 
-3. Open Cowork app > Settings > Plugins
+4. Open Cowork app > Settings > Plugins
    Verify the Anthropic Skills bundle is installed (for humanizer skill).
    Verify claurke-ops appears in your installed skills (manual install may be
    needed; the skill files are at $SKILLS_DIR/claurke-ops/).
