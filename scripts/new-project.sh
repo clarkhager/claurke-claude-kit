@@ -117,7 +117,9 @@ esac
 # --- Step 5: Universal interview ---
 echo ""
 read -rp "What is $PROJECT_NAME? (1-2 sentences for CLAUDE.md): " WHAT_THIS_IS
-WHAT_THIS_IS="${WHAT_THIS_IS:-[2-3 sentences. What is this project? What's the core approach? What is it NOT?]}"
+# Note: defaults inside ${VAR:-default} cannot contain apostrophes - they open a single-quote
+# string bash never sees closed. Phrase defaults without contractions ("What is" not "What's").
+WHAT_THIS_IS="${WHAT_THIS_IS:-[2-3 sentences. What is this project? What is the core approach? What is it NOT?]}"
 
 read -rp "Immediate next move? (1 sentence for STATUS.md): " NEXT_MOVE
 NEXT_MOVE="${NEXT_MOVE:-[Single most important next action. Be specific.]}"
