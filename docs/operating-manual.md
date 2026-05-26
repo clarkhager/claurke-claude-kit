@@ -1,14 +1,91 @@
 # Operating manual
 
-The canonical reference for running this system day-to-day. Read this before changing anything you don't understand. Seven sections: daily operations, recommended setup checklist, verification, update workflows, troubleshooting, recovery scenarios, decision log.
+The canonical reference for running this system day-to-day. Read this before changing anything you don't understand. Eight sections: layering model, daily operations, recommended setup checklist, verification, update workflows, troubleshooting, recovery scenarios, decision log.
 
 ---
 
-## 1. Daily operations
+## 1. Layering model
+
+Five places hold rules and context. Knowing which layer owns what prevents duplication and silent overrides. Read this section first; the rest of the manual assumes it.
+
+### Layer 1: Personal Preferences
+
+Path: Settings > General > Instructions for Claude (the slot that applies across your whole Claude account, not just Cowork).
+
+Scope: All Claude interactions on the account (claude.ai web, Cowork, mobile app, anywhere personal preferences load).
+
+Owns: who you are (name, role, situation), preferred tools, assistant naming, high-level working preferences (response length, draft-first orientation), pointers to where voice rules and behavioral rules live, a thin fallback baseline of voice rules and behavioral rules for environments where the full overlay or rules-kit isn't loaded.
+
+Does not own: the canonical voice rules (those live in voice-profile.md overlay), the full behavioral spine (that lives in rules-kit), project-specific rules (those live in the project's CLAUDE.md). Personal Preferences should stay short - they're loaded into every system prompt, including quick claude.ai web sessions.
+
+### Layer 2: Cowork Global Instructions
+
+Path: Cowork > Settings > Cowork > Global Instructions.
+
+Scope: All Cowork sessions on the account.
+
+Owns: the full rules-kit CLAUDE.md content, pasted in verbatim. This is the behavioral spine (anti-sycophancy, response shape, tool-use discipline, voice loading rule, coding behavior, skill management, diagnostic mode, self-checkpoints, success criteria, system reference).
+
+Does not own: identity content (lives in Personal Preferences), the voice rules themselves (live in voice-profile.md overlay; rules-kit only contains the loading instruction).
+
+### Layer 3: ~/.claude/CLAUDE.md (Claude Code's global file)
+
+Path: `~/.claude/CLAUDE.md` on each machine.
+
+Scope: All Claude Code sessions.
+
+Owns: identical to Layer 2 - the full rules-kit CLAUDE.md content. Auto-deployed by `bootstrap.sh`.
+
+Does not own: anything Layer 2 doesn't own.
+
+### Layer 4: Project-level files (CLAUDE.md, MEMORY.md, STATUS.md, PRIMER.md)
+
+Path: At the root of each project folder.
+
+Scope: When the project folder is open in Cowork or you're in it in Claude Code.
+
+Owns: project-specific context, decisions, rules, memory, status. Examples: the MEMORY.md write rule for Wayfinder (RFD-004), per-project decision logs, project-specific tool preferences, project-specific drafting overrides.
+
+Does not own: anything that applies across all your work. Universal rules belong in rules-kit so every project benefits.
+
+### Layer 5 (overlay): voice-profile.md and other personal files
+
+Path: `~/.claude/claurke-kit/personal/voice-profile.md` (gitignored from the public claurke-claude-kit repo). Also `mcp-list.md`, `skills-list.md`, `account-notes.md` in the same directory.
+
+Scope: voice-profile.md is loaded by reference whenever Claude drafts content on your behalf. The reference itself lives in rules-kit's Voice section.
+
+Owns: salutation, sign-off, banned phrases, em-dash rule, contractions, tone notes, voice examples. Anything that's specific to how you sound in your own writing.
+
+Does not own: behavioral rules (rules-kit), identity (Personal Preferences), project-specific drafting rules (project CLAUDE.md).
+
+### Dedup rules
+
+- Identity (who you are) lives in Personal Preferences only.
+- Canonical voice rules live in voice-profile.md only. Personal Preferences has a one-line fallback baseline for environments where the overlay isn't accessible; that's intentional, not duplication.
+- Behavioral rules live in rules-kit CLAUDE.md only (deployed to Cowork Global Instructions and `~/.claude/CLAUDE.md`).
+- Project-specific rules live in the project's CLAUDE.md only.
+
+### Conflict resolution (what wins when two layers disagree)
+
+The dedup rules above are designed to prevent conflicts. When a conflict does arise (usually because the dedup rules were violated):
+
+1. More specific wins over less specific. Project CLAUDE.md overrides global rules-kit. voice-profile.md overrides the Personal Preferences voice baseline.
+2. When two layers at the same specificity conflict, follow the more restrictive rule.
+3. Surface the conflict explicitly rather than resolving silently (per rules-kit's "surface contradictions" rule).
+
+The one acceptable mechanical duplication: rules-kit CLAUDE.md is deployed to both Cowork Global Instructions and `~/.claude/CLAUDE.md` because Cowork and Claude Code each have their own global slot. Both paste from the same source file, so the duplication is mechanical, not conceptual.
+
+### Why this matters
+
+Without the dedup rules, the same rule lives in two or three places. Updating in one place leaves the others stale; you end up debugging behavior that looks contradictory because two slightly-different versions of the same rule are both loading. The single-source rule for each category prevents that. The fallback baseline in Personal Preferences is the one explicit exception - it exists for environments outside the kit's reach, and it's intentionally thinner than the canonical rules to make the source-of-truth obvious.
+
+---
+
+## 2. Daily operations
 
 ### Cowork (knowledge work, ideation, project management)
 
-Open Cowork. The rules-kit CLAUDE.md is already in Settings > Global Instructions (you pasted it during bootstrap). Behavioral rules apply automatically.
+Open Cowork. The rules-kit CLAUDE.md is already in Settings > Cowork > Global Instructions (you pasted it during bootstrap). Behavioral rules apply automatically.
 
 When you connect Cowork to a project folder, memory-kit's CLAUDE.md, MEMORY.md, STATUS.md, and PRIMER.md auto-load from that folder. Project context applies in addition to the global rules.
 
@@ -32,15 +109,15 @@ When a Cowork conversation produces a build task:
 
 ---
 
-## 2. Recommended setup checklist (new machine, new account, new colleague)
+## 3. Recommended setup checklist (new machine, new account, new colleague)
 
 On a fresh install, beyond running bootstrap.sh, populate your personal overlay using the templates in `personal/templates/`:
 
-### Step 1: Voice profile (optional)
+### Step 1: Voice profile (recommended)
 
 Copy `personal/templates/voice-profile-template.md` into your personal overlay as `voice-profile.md` and fill in your sections (salutation, sign-off, banned phrases, voice examples).
 
-Skip this step if your Claude account's personal preferences already cover voice rules adequately. The voice profile is for richer detail beyond preferences, not a replacement.
+This is the canonical source for the voice rules Claude follows when drafting on your behalf. Personal preferences hold only a thin fallback baseline; the richer rules live here. Skip only if you genuinely don't want Claude to draft on your behalf.
 
 ### Step 2: MCP list
 
@@ -72,17 +149,21 @@ Install existing third-party skills via the marketplace UI (Cowork) or `claude p
 
 The bootstrap script prints these but they're worth listing here too:
 
-1. Cowork > Settings > Global Instructions: paste contents of `~/.claude/CLAUDE.md`
+1. Cowork > Settings > Cowork > Global Instructions: paste contents of `~/.claude/CLAUDE.md`
 2. Cowork > Settings > Connectors: connect MCPs per your list
 3. Cowork > Settings > Plugins: install skills per your list (verify Anthropic Skills bundle for humanizer; verify claurke-ops is recognized)
 
-### Step 5: Verify
+### Step 5: Personal preferences
+
+If this is a fresh Claude account or you're cleaning up an existing one, paste the personal preferences template into Settings > General > Instructions for Claude. The template lives at `personal/templates/personal-preferences-template.md` (or you can copy your existing personal preferences from another machine). Per section 1's dedup rules, personal preferences should hold identity + working style + pointers + fallback baselines only - not duplicate the rules-kit content.
+
+### Step 6: Verify
 
 Run Test 1 from the Verification section below in a fresh Cowork session to confirm the rules are loaded and the system is responding correctly.
 
 ---
 
-## 3. Verification
+## 4. Verification
 
 Use these prompts to confirm the system is loaded correctly. Run periodically (especially after fresh installs or kit updates) to catch silent failures.
 
@@ -92,7 +173,7 @@ Ask in a fresh session: *"What are the five required elements of the impasse-sur
 
 Expected: position held, basis, what would change the position, three things you might be wrong about ordered by likelihood, an explicit ask.
 
-If Claude can't answer, makes something up, or says "I don't see that in your CLAUDE.md," the rules file isn't loaded. In Cowork: check Settings > Global Instructions has the latest paste. In Claude Code: check `~/.claude/CLAUDE.md` exists and has expected content.
+If Claude can't answer, makes something up, or says "I don't see that in your CLAUDE.md," the rules file isn't loaded. In Cowork: check Settings > Cowork > Global Instructions has the latest paste. In Claude Code: check `~/.claude/CLAUDE.md` exists and has expected content.
 
 ### Test 2: behavioral rules fire
 
@@ -114,9 +195,15 @@ After a session in Claude Code with file edits, check `~/.claude/backups/` for a
 
 Ask: *"set up Claude on this new MacBook"*
 
-Expected: skill triggers, fetches the operating manual (or reads from local), responds with the section 2 setup checklist and section 6 lost-state recovery steps, cites the sections.
+Expected: skill triggers, fetches the operating manual (or reads from local), responds with the section 3 setup checklist and section 7 lost-state recovery steps, cites the sections.
 
 If the skill doesn't fire, verify it's installed at `~/.claude/skills/claurke-ops/SKILL.md`. For Cowork, also check Settings > Plugins shows claurke-ops as installed.
+
+### Test 6: voice profile loads on draft
+
+Ask: *"Draft a Slack message to my manager telling her the demo got pushed to Friday."*
+
+Expected: salutation `Hey [Name] -` (or your equivalent), sign-off `Thank you,` on its own line, no em dashes, no banned AI-tell phrases. If the draft uses generic openings ("Hi [Name],"), formal sign-offs ("Best,"), or any banned phrases, voice-profile.md isn't loading or the humanizer skill isn't running. Check the overlay path and verify humanizer is installed.
 
 ### Signs the rules aren't firing
 
@@ -127,12 +214,13 @@ Flag these in any session:
 - Claude commits to a diagnosis without three labeled hypotheses (in diagnostic mode)
 - Claude claims to have read a file or run a command without an actual tool call
 - Generic response patterns that ignore the response-shape rules
+- Drafted content uses em dashes, banned phrases, or generic salutations
 
 Any of these mean the rules aren't loaded. Re-run Test 1 and check the deployment.
 
 ---
 
-## 4. Update workflows
+## 5. Update workflows
 
 ### When a kit changes
 
@@ -146,15 +234,23 @@ This pulls the latest of both kits and offers to redeploy. Run on each machine.
 
 ### When rules-kit's CLAUDE.md changes (Cowork-specific extra step)
 
-Claude Code picks up `~/.claude/CLAUDE.md` automatically after `--update`. Cowork doesn't. Cowork reads from Settings > Global Instructions, which you pasted manually during bootstrap.
+Claude Code picks up `~/.claude/CLAUDE.md` automatically after `--update`. Cowork doesn't. Cowork reads from Settings > Cowork > Global Instructions, which you pasted manually during bootstrap.
 
 If the change affects the main CLAUDE.md content (rules, primer, structural pieces), re-paste into Cowork:
 
 1. Open `~/.claude/CLAUDE.md` (the freshly updated version)
 2. Copy the entire contents
-3. Cowork > Settings > Global Instructions > paste, save
+3. Cowork > Settings > Cowork > Global Instructions > paste, save
 
 If the change only affects side docs (claude_voice_rules.md, claude_anti_sycophancy.md, claude_coding_rules.md, claude_diagnostic_mode.md), no Cowork re-paste needed. Side docs are lazy-loaded by reference in the main file.
+
+### When voice-profile.md changes
+
+Voice profile is in the personal overlay (gitignored), so updates don't propagate via `bootstrap.sh --update`. Sync manually across your machines via the private overlay repo or gist. No Cowork re-paste needed because rules-kit loads the file by reference at draft time, not at session start.
+
+### When personal preferences change
+
+Personal preferences live in your Claude account (Settings > General > Instructions for Claude). They sync across machines within the same account automatically. Switching accounts (personal -> work) requires pasting the appropriate version into each account separately.
 
 ### When claurke-ops changes
 
@@ -179,18 +275,18 @@ The template changes apply to new projects via `scripts/new-project.sh`. Existin
 
 ---
 
-## 5. Troubleshooting
+## 6. Troubleshooting
 
 ### Rules aren't firing in Cowork
 
-Most likely: Settings > Global Instructions has stale content, or never had the rules pasted.
+Most likely: Settings > Cowork > Global Instructions has stale content, or never had the rules pasted.
 
 Fix:
 
 1. Open `~/.claude/CLAUDE.md` on disk
 2. Verify it has the current rules-kit content (compare to GitHub if unsure)
 3. Copy entire contents
-4. Cowork > Settings > Global Instructions > paste fresh, save
+4. Cowork > Settings > Cowork > Global Instructions > paste fresh, save
 5. Open a new Cowork session and run Test 1
 
 ### Rules aren't firing in Claude Code
@@ -203,6 +299,18 @@ Fix:
 2. Verify content matches rules-kit's latest
 3. Re-run `bash ~/.claude/claurke-kit/bootstrap.sh --update` if stale
 4. Run Test 1 in a fresh `claude` session
+
+### Drafted content sounds wrong (voice rules not firing)
+
+Most likely one of: voice-profile.md isn't in the overlay path, humanizer skill isn't installed, or the draft was produced in an environment where the overlay can't be loaded.
+
+Fix:
+
+1. Verify voice-profile.md exists: `ls -la ~/.claude/claurke-kit/personal/voice-profile.md`
+2. If missing, restore from your private overlay backup (or copy `personal/templates/voice-profile-template.md` and fill in)
+3. Verify humanizer is installed: ask Claude "is the humanizer skill available?" or check Cowork > Settings > Plugins
+4. If both are present, run Test 6 in a fresh session to confirm
+5. If you're in a sandbox or claude.ai web where the overlay can't load, the fallback baseline in personal preferences applies - check it's up to date
 
 ### claurke-ops skill not firing
 
@@ -273,7 +381,7 @@ Fix:
 4. If a path is broken, update it to the new location (back up the config first: `cp claude_desktop_config.json claude_desktop_config.json.bak-$(date +%Y%m%d-%H%M%S)`)
 5. Full quit Claude desktop (Cmd+Q) and reopen so MCP server processes spawn at corrected paths
 
-This is also covered as a Recovery scenario (see section 6, "Renamed or moved a project folder that other tools reference") because the root cause is usually a folder rename earlier in the session.
+This is also covered as a Recovery scenario (see section 7, "Renamed or moved a project folder that other tools reference") because the root cause is usually a folder rename earlier in the session.
 
 ### Claude isn't using the project memory files
 
@@ -285,15 +393,26 @@ Fix:
 2. In Cowork: verify the folder is connected as a workspace (Settings > Workspaces)
 3. In Claude Code: verify you're running `claude` from inside the project folder (not a parent)
 
+### Personal preferences and rules-kit are duplicating rules
+
+This is a layering violation. Personal preferences should hold identity + working style + pointers + thin fallback baselines only. Behavioral rules belong in rules-kit (Layer 2/3). Voice rules belong in voice-profile.md (Layer 5).
+
+Fix:
+
+1. Read section 1 (Layering model) to confirm which layer owns which content
+2. Remove duplicated content from the wrong layer
+3. Keep only the fallback baseline in personal preferences for environments outside the kit's reach
+4. Re-paste both Layer 1 (Personal Preferences) and Layer 2 (Cowork Global Instructions) after cleanup
+
 ---
 
-## 6. Recovery scenarios
+## 7. Recovery scenarios
 
 ### Accidentally deleted personal/ overlay
 
 The personal overlay is gitignored, so git won't help you recover. If you keep a private repo or gist as backup (the recommended pattern), re-clone it into `~/.claude/claurke-kit/personal/`.
 
-If you have no backup, the public skeleton still works without the overlay. You lose identity files (voice profile, MCP list, account notes) but the rules and templates are intact.
+If you have no backup, the public skeleton still works without the overlay. You lose identity files (voice profile, MCP list, account notes) but the rules and templates are intact. Drafted content falls back to the personal-preferences voice baseline until you restore voice-profile.md.
 
 Going forward: set up the private backup before relying on the overlay for anything important.
 
@@ -343,7 +462,7 @@ The broken push will propagate to any machine that runs `--update`. Roll back:
 
 1. Revert the bad commit: `git -C ~/.claude/rules-kit revert HEAD` (or whichever kit), push the revert
 2. Run `--update` on each machine to pick up the fix
-3. Re-paste into Cowork's Settings > Global Instructions if the rolled-back change affected the main CLAUDE.md
+3. Re-paste into Cowork's Settings > Cowork > Global Instructions if the rolled-back change affected the main CLAUDE.md
 
 ### Renamed or moved a project folder that other tools reference
 
@@ -385,7 +504,7 @@ If grep returns nothing, the rename is safe. If it returns hits, update those re
 
 ---
 
-## 7. Decision log
+## 8. Decision log
 
 Why the system is the way it is. Read this before second-guessing a structural choice.
 
@@ -449,6 +568,19 @@ Created to give Claude on-demand access to this operating manual without requiri
 ### Why claurke-ops is shipped in the kit repo and auto-installed by bootstrap
 
 Third-party skills go through the marketplace install path. claurke-ops is ours, lives in the kit, and should never drift from the operating manual it surfaces. Shipping it in `skills/claurke-ops/` in claurke-claude-kit means it versions with the kit; bootstrap.sh copies it to `~/.claude/skills/claurke-ops/` so Claude Code picks it up automatically. For Cowork, a manual Plugins-panel install may also be needed because Cowork's plugin system is account-level and doesn't observe filesystem changes directly.
+
+### Why voice rules live in voice-profile.md, not personal preferences
+
+For a while, voice rules lived in personal preferences as a single growing block. Two problems emerged:
+
+1. Personal preferences are loaded into every system prompt, including quick claude.ai web sessions where the voice rules don't even apply (no drafting happens). Sending a ~80-line voice spec into every chat wastes tokens for no benefit.
+2. Voice rules co-existed with behavior rules and identity in the same slot, making it unclear what was authoritative when something conflicted.
+
+Moving voice rules to voice-profile.md in the personal overlay solves both: the file loads only when rules-kit's Voice section references it (at draft time), and the slot has exactly one responsibility. Personal preferences keep a thin fallback baseline for environments where the overlay can't load (claude.ai web), but the canonical source is the overlay file.
+
+### Why the layering model became a top-of-manual concept
+
+The rules-kit CLAUDE.md, voice-profile.md, personal preferences, and project files all overlap if you're not careful about which slot owns what. After observing actual drift (the same rule landing in three places, then updates only being applied to one), the layering model was elevated to section 1 of the operating manual so it's encountered before any operational guidance. Most troubleshooting traces back to a layering violation; the model is the diagnostic frame.
 
 ---
 
