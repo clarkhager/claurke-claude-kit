@@ -89,7 +89,50 @@ Open Cowork. The rules-kit CLAUDE.md is already in Settings > Cowork > Global In
 
 When you connect Cowork to a project folder, memory-kit's CLAUDE.md, MEMORY.md, STATUS.md, and PRIMER.md auto-load from that folder. Project context applies in addition to the global rules.
 
-New project: `bash ~/.claude/claurke-kit/scripts/new-project.sh /path/to/project`
+### Starting a new project (interview-driven flow)
+
+```bash
+bash ~/.claude/claurke-kit/scripts/new-project.sh
+```
+
+The script walks you through an interview to capture project framing at creation time. Four supported project types:
+
+| Type | When to use | Extras the script sets up |
+|---|---|---|
+| **code** | Tech projects (Python, Node, Rust, Go, etc.) | `.gitignore` per language + `.claude/rules/` folder for scoped rules + keeps Scoped Rules section in CLAUDE.md |
+| **knowledge** | Notes / vault / non-code workspaces | Removes Scoped Rules section (irrelevant for non-code) |
+| **meta** | Cross-repo coordination (tracks decisions across multiple repos) | Adds Tracked Repos section to CLAUDE.md listing the repos it follows |
+| **subworkspace** | Auto-detected when parent dir is already a project | Adds Parent Workspace section + skips git-init guidance (parent's repo handles it) + suggests no separate daily-backup entry |
+
+The interview asks:
+
+1. Project directory (can supply as arg: `bash new-project.sh ~/Documents/Claude/Projects/my-project`)
+2. Project type (auto-detects sub-workspace if parent has CLAUDE.md/MEMORY.md)
+3. Type-specific questions (language for code, tracked repos for meta)
+4. "What is this project?" - 1-2 sentences, pre-populated into CLAUDE.md's "What This Is" section
+5. "Immediate next move?" - pre-populated into STATUS.md's Next Move section
+6. Expected duration > 4 weeks? Y/N - controls whether PRIMER.md is included
+7. Origin / why - 1 line for PRIMER.md (skippable, fill in later)
+
+Output: CLAUDE.md, MEMORY.md, STATUS.md, (optionally PRIMER.md) in the project root, all pre-populated from your answers. Plus type-specific scaffolding.
+
+The script also prints type-aware next steps at the end (e.g., for code: how to git init + push to a private GitHub repo + add to daily backup; for sub-workspace: confirms no separate git/backup needed).
+
+### After the script runs
+
+1. Review CLAUDE.md - the script populated "What This Is" from your answer; check Standing Rules, Known Gotchas, Anti-Patterns sections and add project-specific entries
+2. Connect the folder as a Cowork workspace (for top-level projects) or open the parent and navigate in (for sub-workspaces)
+3. Start your first session with the kickoff prompt the script printed: `New session in <project>. Read CLAUDE.md, MEMORY.md, and STATUS.md. Tell me what you know and what the next move is.`
+
+### Non-interactive mode (advanced)
+
+If you want to skip the interview and just deploy templates with default values, call memory-kit's deploy.sh directly:
+
+```bash
+bash ~/.claude/memory-kit/deploy.sh ~/Documents/Claude/Projects/my-project
+```
+
+This is the underlying script that the orchestrator calls. It prompts for name + stack + primer Y/N only, and leaves the new interview-driven fields as bracketed placeholders. Useful for scripted deploys or when you'll fill in the templates manually.
 
 ### Claude Code (development)
 
@@ -581,6 +624,16 @@ Moving voice rules to voice-profile.md in the personal overlay solves both: the 
 ### Why the layering model became a top-of-manual concept
 
 The rules-kit CLAUDE.md, voice-profile.md, personal preferences, and project files all overlap if you're not careful about which slot owns what. After observing actual drift (the same rule landing in three places, then updates only being applied to one), the layering model was elevated to section 1 of the operating manual so it's encountered before any operational guidance. Most troubleshooting traces back to a layering violation; the model is the diagnostic frame.
+
+### Why new-project.sh became interview-driven with project types
+
+The original new-project.sh was a thin wrapper around memory-kit/deploy.sh - it just dumped the four templates with `{{PROJECT_NAME}}`, `{{STACK}}`, `{{DATE}}` substituted and left the user to fill in everything else. Two problems with that pattern emerged in practice:
+
+1. **Project framing was deferred indefinitely.** The "What This Is" section, "Next Move" section, and origin story all stayed bracketed placeholders, and users (Clark included) often shipped projects where those sections were never filled in. Claude in fresh sessions couldn't load real project context because there wasn't any.
+2. **Sub-workspaces needed a different tool.** When creating ai-squad inside BizzaBrain, the standard new-project.sh didn't know it was a sub-workspace and tried to scaffold it like a top-level project (suggesting separate git repo, separate daily backup, etc.). The cowork-os:subfolders skill existed for this but was a third-party plugin Clark wanted to retire.
+3. **One-size-fits-all scaffolding produced friction.** Code projects need `.gitignore` and a `.claude/rules/` folder; knowledge projects don't need either; meta-projects need a tracked-repos pointer; sub-workspaces need a parent-workspace reference. The single template tried to cover all cases by keeping a "Scoped Rules (technical projects only) - Remove this section if not a technical project" comment, which most users never actually remove.
+
+The interview-driven flow solves all three: an interview captures the framing at creation time so CLAUDE.md and STATUS.md are populated when the project starts; type detection (sub-workspace auto-detected when parent has CLAUDE.md/MEMORY.md) handles the cowork-os:subfolders use case natively; type-aware scaffolding produces appropriate defaults per project type. The standalone non-interactive path (`memory-kit/deploy.sh` directly) is preserved for advanced users and scripted deploys.
 
 ---
 
