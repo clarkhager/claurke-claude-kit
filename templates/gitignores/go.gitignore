@@ -1,0 +1,33 @@
+# Go
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+vendor/
+go.sum.lock
+
+# Build outputs
+bin/
+dist/
+build/
+
+# Secrets and local config
+.env
+.env.local
+*.pem
+*.key
+secrets.json
+
+# macOS / IDE
+.DS_Store
+.vscode/
+.idea/
+*.swp
+*~
+
+# Logs
+*.log
+logs/

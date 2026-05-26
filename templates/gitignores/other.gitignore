@@ -1,0 +1,27 @@
+# Universal defaults
+
+# Secrets and local config
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+secrets.json
+
+# macOS
+.DS_Store
+._*
+.Spotlight-V100
+.Trashes
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+logs/
+.cache/
