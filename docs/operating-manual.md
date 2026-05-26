@@ -261,6 +261,20 @@ Fix:
 - Claude Code: configure `.mcp.json` or settings.json
 - Each MCP requires OAuth or API key per account; not portable across accounts without re-auth
 
+### MCP "server disconnected" errors after restart
+
+Most likely: an MCP server script's path has changed (folder rename, move, delete) and `claude_desktop_config.json` still points at the old location.
+
+Fix:
+
+1. Open `~/Library/Application Support/Claude/claude_desktop_config.json`
+2. Find the `mcpServers` section and inspect the `command` and `args` paths for each disconnected MCP
+3. Verify each referenced script exists at the path listed: `ls -la /path/from/config`
+4. If a path is broken, update it to the new location (back up the config first: `cp claude_desktop_config.json claude_desktop_config.json.bak-$(date +%Y%m%d-%H%M%S)`)
+5. Full quit Claude desktop (Cmd+Q) and reopen so MCP server processes spawn at corrected paths
+
+This is also covered as a Recovery scenario (see section 6, "Renamed or moved a project folder that other tools reference") because the root cause is usually a folder rename earlier in the session.
+
 ### Claude isn't using the project memory files
 
 Most likely: project files aren't in the folder Claude is loading from.
@@ -330,6 +344,44 @@ The broken push will propagate to any machine that runs `--update`. Roll back:
 1. Revert the bad commit: `git -C ~/.claude/rules-kit revert HEAD` (or whichever kit), push the revert
 2. Run `--update` on each machine to pick up the fix
 3. Re-paste into Cowork's Settings > Global Instructions if the rolled-back change affected the main CLAUDE.md
+
+### Renamed or moved a project folder that other tools reference
+
+Folder renames break hardcoded path references in config files outside the folder itself. The most common offenders:
+
+- `~/Library/Application Support/Claude/claude_desktop_config.json` - MCP server scripts launched by Claude desktop (custom MCPs you've built that live inside the renamed folder)
+- `~/.claude/memory-kit.conf` - project registry for memory-kit; stale paths produce warnings on check-updates.sh
+- Cowork workspace registrations at `~/.claude/projects/-Users-...` - orphaned pointers; harmless but appear in the project list
+- Shell aliases, scripts, or `.zshrc` / `.bashrc` entries that hardcoded the path
+- Git remotes if the renamed folder was a git repo with path-relative remotes (rare)
+
+**Symptom:** after the rename, processes that depended on the old path fail silently or report "server disconnected" / "file not found" errors. Claude desktop MCPs are the most visible case because their failures show as banner notifications on app start.
+
+**Recovery steps:**
+
+1. Identify the old path (the name you renamed from).
+2. Grep the common config locations for the old path:
+   ```bash
+   grep -rn "OldFolderName" ~/Library/Application\ Support/Claude/ ~/.claude/ 2>/dev/null
+   ```
+3. For each reference, back up the file first then edit:
+   ```bash
+   cp file file.bak-$(date +%Y%m%d-%H%M%S)
+   sed -i '' 's|OldPath|NewPath|g' file
+   ```
+   (The `sed -i ''` form is the macOS in-place edit syntax. Use `sed -i` without the empty string on Linux.)
+4. Restart affected processes. Claude desktop MCPs require full quit (Cmd+Q, not just close window) and reopen so spawn paths refresh.
+5. Verify functionality - the affected MCPs or tools should reconnect.
+
+**Specific failure mode captured here:** May 2026 session - renamed `BizzaBrain 🧠/` to `BizzaBrain/` for personal GitHub migration. Did not check `claude_desktop_config.json`, which had three MCP server scripts (gmail, google-workspace, amie) pointing inside the old folder. After app restart, all three MCPs showed "server disconnected" because their spawn paths were broken. Fix was updating three paths in the config via sed.
+
+**Prevention:** before renaming any project folder that has been around for a while, grep for the old path in common config locations. The cheap one-line check:
+
+```bash
+grep -rn "OldFolderName" ~/Library/Application\ Support/Claude/ ~/.claude/ 2>/dev/null
+```
+
+If grep returns nothing, the rename is safe. If it returns hits, update those references before or alongside the rename. Add this check to any project-migration checklist.
 
 ---
 
