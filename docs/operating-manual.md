@@ -1,6 +1,6 @@
 # Operating manual
 
-The canonical reference for running this system day-to-day. Read this before changing anything you don't understand. Eight sections: layering model, daily operations, recommended setup checklist, verification, update workflows, troubleshooting, recovery scenarios, decision log.
+The canonical reference for running this system day-to-day. Read this before changing anything you don't understand. Nine sections: layering model, daily operations, recommended setup checklist, verification, update workflows, troubleshooting, recovery scenarios, decision log, implementation gotchas.
 
 ---
 
@@ -634,6 +634,97 @@ The original new-project.sh was a thin wrapper around memory-kit/deploy.sh - it 
 3. **One-size-fits-all scaffolding produced friction.** Code projects need `.gitignore` and a `.claude/rules/` folder; knowledge projects don't need either; meta-projects need a tracked-repos pointer; sub-workspaces need a parent-workspace reference. The single template tried to cover all cases by keeping a "Scoped Rules (technical projects only) - Remove this section if not a technical project" comment, which most users never actually remove.
 
 The interview-driven flow solves all three: an interview captures the framing at creation time so CLAUDE.md and STATUS.md are populated when the project starts; type detection (sub-workspace auto-detected when parent has CLAUDE.md/MEMORY.md) handles the cowork-os:subfolders use case natively; type-aware scaffolding produces appropriate defaults per project type. The standalone non-interactive path (`memory-kit/deploy.sh` directly) is preserved for advanced users and scripted deploys.
+
+---
+
+## 9. Implementation gotchas (for kit maintainers)
+
+When modifying the kit scripts (deploy.sh, new-project.sh, bootstrap.sh, install-humanizer.sh, etc.), watch for these patterns that have bitten the kit's own development before. Each entry: the pattern, why it fails, how to write it safely.
+
+### Apostrophes inside `${VAR:-default}` bash expansions
+
+Single quotes inside `${VAR:-default}` patterns open a string that bash never sees closed, even when the whole expression is wrapped in double quotes. The error surfaces much later in the script - usually as `syntax error near unexpected token "("` on a line that has nothing apparent wrong with it.
+
+**Example that breaks:**
+
+```bash
+WHAT_THIS_IS="${WHAT_THIS_IS:-What's the core approach?}"
+```
+
+**Example that works** (rephrase without contractions):
+
+```bash
+WHAT_THIS_IS="${WHAT_THIS_IS:-What is the core approach?}"
+```
+
+**If you must include an apostrophe**, build the string in a separate line first:
+
+```bash
+DEFAULT_TEXT="What's the core approach?"
+WHAT_THIS_IS="${WHAT_THIS_IS:-$DEFAULT_TEXT}"
+```
+
+The string is assigned in a fully-double-quoted context first, so the apostrophe is just a literal character. Then the `${VAR:-$DEFAULT_TEXT}` expansion uses the already-built variable.
+
+**Caught:** May 2026, when the rewrite of new-project.sh shipped with `What's the core approach?` in the WHAT_THIS_IS default. Script crashed at line 207 (an `echo` with markdown link parens in `append_tracked_repos_section`) - 90+ lines after the actual offender. Took diagnosis via incremental `bash -n` to find that the real failure was line 120.
+
+**Other characters to avoid inside `${VAR:-default}`:** backticks (command substitution), unescaped `$` (variable expansion), unbalanced parens, double quotes. Build the string in a separate variable first when you need any of these.
+
+### Heredoc delimiter must be at column 0
+
+When using `cat << EOF` heredocs, the closing `EOF` must be at column 0 (no leading whitespace) unless you use `<<- EOF` (which strips leading tabs only, not spaces). If the EOF is indented inside a function or conditional, bash keeps reading lines until end of file looking for a column-0 match. The error you see is usually `unexpected end of file` on the last line of the script, which is misleading.
+
+**Example that breaks:**
+
+```bash
+my_function() {
+  cat << EOF
+some content
+  EOF                # <- indented; bash doesn't recognize this as the terminator
+}
+```
+
+**Example that works:**
+
+```bash
+my_function() {
+  cat << EOF
+some content
+EOF                  # <- at column 0
+}
+```
+
+IDEs that auto-indent shell scripts can sneak this bug in. Watch for it especially when copy-pasting heredocs into a function body.
+
+### Unquoted vs quoted heredoc delimiter
+
+`cat << EOF` (unquoted delimiter) expands variables (`$VAR`), command substitution (`` `cmd` `` or `$(cmd)`), and arithmetic (`$((expr))`) inside the heredoc content. To suppress all expansion and pass the content through literally, use `cat << 'EOF'` (single-quoted delimiter).
+
+**Use unquoted when you WANT expansion:**
+
+```bash
+cat << EOF
+Project is at $PROJECT_DIR.
+Today is $(date).
+EOF
+```
+
+**Use quoted when you DON'T want expansion** (e.g., embedded python code, raw markdown, anything with `$` that should be literal):
+
+```bash
+python3 << 'PYEOF'
+import json, os
+print(os.environ.get('HOME'))
+PYEOF
+```
+
+The python heredocs in `deploy.sh` and `new-project.sh` use `'PYEOF'` for exactly this reason - python code references variables and shouldn't be subject to bash expansion.
+
+### Test scripts with `bash -n` before pushing
+
+For any non-trivial script change, run `bash -n script.sh` locally to catch syntax errors without executing. Doesn't catch runtime errors but catches the apostrophe/heredoc/quote bugs above before they ship.
+
+For scripts that are too complex to syntax-check cleanly, write a smoke test that runs the script in a temp directory with default inputs and asserts on the output files. Worth the 15 minutes when the script is going to run on a half-dozen machines.
 
 ---
 
