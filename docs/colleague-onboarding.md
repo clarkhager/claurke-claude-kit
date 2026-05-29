@@ -2,7 +2,78 @@
 
 **What this is:** a versioned, multi-machine Claude workflow with anti-sycophancy rules, project memory templates, and a personal voice profile. Originally built by Clark Hager for his own use; the public repos are designed to be forkable so anyone can adopt the same patterns.
 
-**What this doc is:** a beginner-friendly walkthrough of how to adopt the system on your own machine. If you have Cowork installed and a GitHub account, you can be running with the full kit in 30-60 minutes.
+**Who this is for:** anyone who uses Claude Cowork or Claude Code and wants a more opinionated, less agreeable, more memory-aware setup than the defaults. You don't need to be a developer. The recommended install path uses one terminal command and then everything else happens inside Cowork.
+
+---
+
+## The recommended install (one terminal command + a few clicks in Cowork)
+
+### Step 1: Open Terminal
+
+On your Mac, press **Cmd + Space**, type `Terminal`, and press Enter. A black window will open. That's Terminal. It looks intimidating but you're only going to paste one thing.
+
+### Step 2: Paste this exact command, then press Enter
+
+```bash
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/clarkhager/claurke-claude-kit/main/install.sh)"
+```
+
+**What this does** (so you're not pasting blindly):
+
+- Installs Homebrew if you don't have it (Homebrew is the standard Mac package manager - it's what lets you install developer tools)
+- Installs `git` (version control) and `gh` (GitHub command-line tool) if you don't already have them
+- Opens your browser so you can log in to GitHub (create an account at https://github.com/signup if you don't have one)
+- Downloads the claurke kit to a hidden folder in your home directory (`~/.claude/claurke-kit`)
+- Runs the bootstrap script which installs two helper skills into Cowork
+
+When it finishes (5-15 minutes depending on what was already installed), it prints "Install complete!" and tells you what to do next.
+
+### Step 3: Open Cowork and ask it to finish the setup
+
+Open Cowork. Start a fresh session. Type:
+
+```
+install claurke for me
+```
+
+That triggers the `claurke-onboarding` skill that the Terminal step installed. The skill asks you a few interview questions (multiple choice where possible):
+
+- Which adoption path - full / rules-only / customize
+- Your GitHub username
+- Voice preferences - your salutation style, sign-off, whether you want em dashes banned, etc.
+- Personal preferences - your name, role, preferred tools, AI assistant name
+
+Then it creates your own private GitHub repo for your identity files, populates your voice profile and personal preferences from your answers, and surfaces the last three manual steps (which are paste-into-Cowork-settings operations that Claude can't click for you).
+
+### Step 4: The three manual paste steps
+
+The skill will tell you when to do these. They're three settings in Cowork that you have to paste into yourself:
+
+1. **Cowork > Settings > General > Instructions for Claude** - paste your personal preferences file
+2. **Cowork > Settings > Cowork > Global Instructions** - paste the behavioral rules file
+3. **Cowork > Settings > Plugins** - install the Anthropic Skills bundle (for the humanizer skill, which makes voice rules fire on drafts)
+
+The skill prints the file paths and offers to display the contents so you can copy them quickly.
+
+### Step 5: Verify
+
+Open a fresh Cowork session and ask Claude:
+
+```
+What are the five required elements of the impasse-surfacing artifact?
+```
+
+If Claude responds with five elements (position held, basis, what would change the position, three candidates you might be wrong about, an explicit ask), the rules are loaded.
+
+Then test voice rules:
+
+```
+Draft a Slack message to my manager telling her the demo got pushed to Friday.
+```
+
+If the draft uses your salutation style, your sign-off, no em dashes, and no AI-tell phrases ("I'd be happy to," "straightforward," etc.), your voice profile is loaded.
+
+Done.
 
 ---
 
@@ -26,7 +97,7 @@ If you're constantly fighting Claude on "you're being too agreeable" or "this do
 - Memory-kit templates for new projects with type-aware scaffolding (code / knowledge / meta / sub-workspace)
 - An operating manual (9 sections) you can reference when something breaks
 - The `claurke-ops` skill that fires when you ask Claude about your setup
-- The `claurke-onboarding` skill (this skill's sibling) that walks new machines through setup
+- The `claurke-onboarding` skill (used in Step 3 above) that walks new machines through setup
 - A bootstrap script that handles multi-machine sync
 - Templates for your personal overlay (voice profile, MCP list, skills list, personal preferences)
 
@@ -35,33 +106,17 @@ If you're constantly fighting Claude on "you're being too agreeable" or "this do
 ## What you'll need
 
 - **Claude Cowork** (https://www.anthropic.com/cowork) **or Claude Code** (https://docs.claude.com/en/docs/claude-code/overview) installed. Cowork is the friendlier path.
-- **A GitHub account** (https://github.com/signup). You'll need one to fork the public kit repos and to create your own private overlay repo for identity files.
-- **macOS or Linux.** The bootstrap and daily-backup scripts assume Unix; Windows would need WSL or manual adaptation.
-- **30-60 minutes** for the initial setup. Less if you use the interview-driven flow.
+- **A GitHub account** (https://github.com/signup). You'll create one in Step 2 if you don't have one - the installer opens your browser to log in.
+- **macOS or Linux.** The bootstrap and daily-backup scripts assume Unix. Windows users need WSL or the manual path.
+- **15-30 minutes** for the initial setup using the one-liner. Faster if everything's already installed.
 
 ---
 
-## The recommended path: let Cowork drive the setup
-
-Open Cowork. Start a fresh session. Type:
-
-```
-Install the claurke system for me.
-```
-
-The `claurke-onboarding` skill kicks in, interviews you about your adoption preferences and identity (multiple-choice questions where applicable), runs the install commands on your behalf, and surfaces the manual steps you have to do yourself (paste into Cowork settings, etc.). This is the friendliest path if you don't want to think about the architecture.
-
-If you want to know what the skill is actually doing under the hood, read on. Otherwise just open Cowork and ask it to install.
-
----
-
-## The three adoption paths
-
-The interview asks which path fits. Pick before starting if you want to know what you're committing to.
+## The three adoption paths (the skill asks which you want)
 
 ### Path A: I want the whole thing
 
-Fork the three public kits and adopt as-is. Use Clark's rules, his memory templates, his orchestrator. Adapt only your identity layer (voice profile, personal preferences). Time: 30 min if you have everything ready.
+Fork the three public kits and adopt as-is. Use Clark's rules, his memory templates, his orchestrator. Adapt only your identity layer (voice profile, personal preferences). Time: 30 min if you have everything ready. **Recommended for first-time adopters.**
 
 ### Path B: I want just the behavioral rules
 
@@ -73,15 +128,14 @@ Fork the public kits. Edit the rules-kit CLAUDE.md to match your style (which ru
 
 ---
 
-## Manual install (if you don't want to use the interview)
+## Manual install (if you don't want to use the one-liner)
 
-These are the commands the `claurke-onboarding` skill runs on your behalf. You can do them yourself if you prefer.
+The one-liner runs these commands for you. You can run them yourself if you'd rather see each step.
 
 ### Step 1: Install prereqs
 
 ```bash
-brew install gh git uv
-brew install --cask obsidian  # only if you want Obsidian for knowledge work
+brew install gh git
 gh auth login
 ```
 
@@ -92,75 +146,15 @@ gh repo clone clarkhager/claurke-claude-kit ~/.claude/claurke-kit
 bash ~/.claude/claurke-kit/bootstrap.sh --starter
 ```
 
-The `--starter` flag means "public skeleton only - skip the personal overlay" - which is what you want as a new adopter. (Without `--starter`, the bootstrap assumes Clark's personal overlay is being deployed.)
+### Step 3: Open Cowork and run the onboarding skill
 
-The bootstrap will:
-- Clone the rules-kit and memory-kit
-- Deploy the rules to `~/.claude/CLAUDE.md`
-- Install the `claurke-ops` and `claurke-onboarding` skills to `~/.claude/skills/`
-- Print the manual Cowork UI steps you have to do
-
-### Step 3: Set up your own private overlay (for identity)
-
-The public kits don't include your voice profile, MCP list, or personal preferences - those are your identity layer and should live in a private repo. Create one:
-
-```bash
-gh repo create <your-username>/claurke-personal-overlay --private --description "My personal overlay for the claurke system"
-gh repo clone <your-username>/claurke-personal-overlay ~/.claude/claurke-kit/personal-overlay-repo
-mkdir -p ~/.claude/claurke-kit/personal
-```
-
-Copy the templates and edit them:
-
-```bash
-cp ~/.claude/claurke-kit/personal/templates/voice-profile-template.md ~/.claude/claurke-kit/personal-overlay-repo/voice-profile.md
-cp ~/.claude/claurke-kit/personal/templates/personal-preferences-template.md ~/.claude/claurke-kit/personal-overlay-repo/personal-preferences.md
-# Edit both files with your name, voice rules, preferred tools, etc.
-```
-
-Symlink them into the overlay slot:
-
-```bash
-ln -sfn ~/.claude/claurke-kit/personal-overlay-repo/voice-profile.md         ~/.claude/claurke-kit/personal/voice-profile.md
-ln -sfn ~/.claude/claurke-kit/personal-overlay-repo/personal-preferences.md  ~/.claude/claurke-kit/personal/personal-preferences.md
-```
-
-Commit and push the overlay:
-
-```bash
-cd ~/.claude/claurke-kit/personal-overlay-repo
-git add -A && git commit -m "Initial overlay setup" && git push
-```
-
-### Step 4: Manual Cowork UI steps
-
-The bootstrap can't automate Cowork's UI. Do these by hand:
-
-1. **Cowork > Settings > General > Instructions for Claude** - paste the contents of `~/.claude/claurke-kit/personal-overlay-repo/personal-preferences.md`
-2. **Cowork > Settings > Cowork > Global Instructions** - paste the contents of `~/.claude/CLAUDE.md`
-3. **Cowork > Settings > Plugins** - install the Anthropic Skills bundle if you want the humanizer skill (required for voice rules to fire on drafts)
-
-### Step 5: Verify
-
-Open a fresh Cowork session and ask:
+Open Cowork. Start a fresh session. Type:
 
 ```
-What are the five required elements of the impasse-surfacing artifact?
+install claurke for me
 ```
 
-Expected: Claude responds with the five elements (position held, basis, what would change the position, three candidates you might be wrong about, an explicit ask).
-
-If Claude can't answer, the rules aren't loading. Check that you pasted the rules-kit content into Cowork Global Instructions.
-
-Next:
-
-```
-Draft a Slack message to my manager telling her the demo got pushed to Friday.
-```
-
-Expected: salutation per your voice profile, sign-off per your voice profile, no em dashes, no banned phrases.
-
-If the draft looks wrong, your voice profile isn't loading. Re-check the symlink at `~/.claude/claurke-kit/personal/voice-profile.md`.
+The skill picks up from there.
 
 ---
 
@@ -203,11 +197,14 @@ Full details in `docs/operating-manual.md` section 2.
 
 ## FAQ
 
+**Q: Why curl-pipe-to-bash? Isn't that a security risk?**
+A: It's the same pattern Homebrew uses (`/bin/bash -c "$(curl -fsSL ...install.sh)"`). You're trusting that this repo's install.sh isn't malicious. You can read the script first at https://github.com/clarkhager/claurke-claude-kit/blob/main/install.sh if you want to verify.
+
 **Q: Do I have to fork the public repos, or can I just clone?**
 A: Cloning works. Fork only if you plan to customize the rules or templates and want your own version-controlled history.
 
 **Q: What if I don't have Obsidian? Do I need it?**
-A: No. Obsidian is for knowledge-work projects (BizzaBrain-style). If you're only doing code or notes-in-Cowork projects, skip the Obsidian install entirely.
+A: No. Obsidian is for knowledge-work projects. If you're only doing code or notes-in-Cowork projects, skip the Obsidian install entirely.
 
 **Q: Can I use this with claude.ai web (no Cowork)?**
 A: Partially. Personal Preferences are the only layer that applies in claude.ai web. The personal preferences template has a thin fallback baseline of voice rules and behavioral rules for this case. The full behavioral spine and voice profile only load in Cowork or Claude Code.
@@ -233,6 +230,7 @@ A: `docs/operating-manual.md` section 6 (troubleshooting) has the most common is
 
 - **The operating manual:** `~/.claude/claurke-kit/docs/operating-manual.md` after install, or https://github.com/clarkhager/claurke-claude-kit/blob/main/docs/operating-manual.md before. Nine sections, comprehensive.
 - **The claurke-ops skill:** ask Claude directly about anything in the manual. The skill fires automatically when you ask operational questions.
+- **The claurke-onboarding skill:** the install skill. Asking "install claurke" or "set up claurke" in any fresh Cowork session triggers it.
 - **GitHub issues:** https://github.com/clarkhager/claurke-claude-kit/issues. File bugs or improvement requests on the public kit.
 - **Original author:** Clark Hager (https://github.com/clarkhager). He doesn't promise support but is reachable.
 
