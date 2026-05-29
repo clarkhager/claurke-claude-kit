@@ -53,6 +53,21 @@ command -v git >/dev/null || { echo "git not found. Install git first."; exit 1;
 command -v gh >/dev/null || print_warn "gh CLI not found. Clones will use https. Install gh for SSH cloning."
 print_ok "Prereqs OK"
 
+# --- Install a kit-shipped skill helper ---
+install_kit_skill() {
+  local skill_name="$1"
+  local src="$SCRIPT_DIR/skills/$skill_name"
+  local dest="$SKILLS_DIR/$skill_name"
+  if [ -d "$src" ]; then
+    mkdir -p "$SKILLS_DIR"
+    rm -rf "$dest"
+    cp -r "$src" "$dest"
+    print_ok "$skill_name installed to $dest"
+  else
+    print_warn "$skill_name source not found at $src (kit may be outdated; run git pull)"
+  fi
+}
+
 # --- Update mode: pull latest and exit ---
 if [ "$MODE" = "update" ]; then
   echo ""
@@ -75,13 +90,9 @@ if [ "$MODE" = "update" ]; then
   print_step "Updating claurke-claude-kit (this repo)..."
   git -C "$SCRIPT_DIR" pull --ff-only origin main || print_warn "claurke-claude-kit update failed"
 
-  # Refresh claurke-ops skill from the updated kit
-  if [ -d "$SCRIPT_DIR/skills/claurke-ops" ]; then
-    mkdir -p "$SKILLS_DIR"
-    rm -rf "$SKILLS_DIR/claurke-ops"
-    cp -r "$SCRIPT_DIR/skills/claurke-ops" "$SKILLS_DIR/"
-    print_ok "claurke-ops skill refreshed"
-  fi
+  # Refresh kit-shipped skills from the updated kit
+  install_kit_skill "claurke-ops"
+  install_kit_skill "claurke-onboarding"
 
   echo ""
   print_ok "Updates done."
@@ -117,18 +128,12 @@ echo ""
 print_step "Deploying rules-kit at the global level..."
 bash "$RULES_KIT_DIR/deploy.sh" --global
 
-# --- Install claurke-ops skill (shipped with this kit) ---
+# --- Install kit-shipped skills ---
 echo ""
-print_step "Installing claurke-ops skill..."
-if [ -d "$SCRIPT_DIR/skills/claurke-ops" ]; then
-  mkdir -p "$SKILLS_DIR"
-  rm -rf "$SKILLS_DIR/claurke-ops"
-  cp -r "$SCRIPT_DIR/skills/claurke-ops" "$SKILLS_DIR/"
-  print_ok "claurke-ops installed to $SKILLS_DIR/claurke-ops"
-  print_warn "For Cowork: claurke-ops may also need manual install via Settings > Plugins. The skill files are at $SKILLS_DIR/claurke-ops/"
-else
-  print_warn "claurke-ops source not found at $SCRIPT_DIR/skills/claurke-ops (kit may be outdated; run git pull)"
-fi
+print_step "Installing kit-shipped skills..."
+install_kit_skill "claurke-ops"
+install_kit_skill "claurke-onboarding"
+print_warn "For Cowork: kit-shipped skills may also need manual install via Settings > Plugins. The skill files are at $SKILLS_DIR/"
 
 # --- Skill check ---
 echo ""
@@ -164,12 +169,17 @@ EOF
 else
   print_step "Starter mode: skipping personal overlay"
   cat <<EOF
-To make this kit yours:
-  1. Fork the three repos: claurke-rules-kit, claurke-memory-kit, claurke-claude-kit
-  2. Update bootstrap.sh and scripts to reference your forks instead of clarkhager/*
-  3. Customize the rules in your fork of rules-kit if needed
-  4. Create your own personal/ overlay with your voice profile, personal preferences, and identity files
-  5. See docs/personal-overlay.md, docs/operating-manual.md section 1, and docs/how-i-actually-use-this.md for guidance
+You're in starter mode - the colleague-onboarding path. Recommended next move:
+
+  1. Open Cowork and start a fresh session
+  2. Type: "install claurke for me"
+     The claurke-onboarding skill will walk you through the interview-driven
+     setup (creates your private overlay repo, populates voice profile and
+     personal preferences via multi-choice questions, surfaces the manual
+     Cowork UI steps).
+
+Or if you'd rather do it manually, see docs/colleague-onboarding.md for the
+full command list.
 EOF
 fi
 
@@ -197,13 +207,13 @@ cat <<EOF
 
 4. Open Cowork app > Settings > Plugins
    Verify the Anthropic Skills bundle is installed (for humanizer skill).
-   Verify claurke-ops appears in your installed skills (manual install may be
-   needed; the skill files are at $SKILLS_DIR/claurke-ops/).
+   Verify claurke-ops and claurke-onboarding appear in your installed skills
+   (manual install may be needed; the skill files are at $SKILLS_DIR/).
    Install any additional plugins you want active in Cowork.
 
 ============================================
 For per-project memory setup, when you start a new project:
-  bash $SCRIPT_DIR/scripts/new-project.sh /path/to/project
+  bash $SCRIPT_DIR/scripts/new-project.sh
 ============================================
 EOF
 
