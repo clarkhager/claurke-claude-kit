@@ -10,8 +10,9 @@
 # - Clones the claurke kit
 # - Runs bootstrap.sh --starter to deploy rules + install skills
 #
-# After this finishes, the user opens Cowork and says "install claurke for me"
-# and the claurke-onboarding skill drives the rest of the setup.
+# After this finishes, the user adds the claurke marketplace in Cowork,
+# installs the claurke-onboarding plugin, then says "install claurke for me"
+# in a fresh Cowork session. The skill drives the rest of the setup.
 
 set -euo pipefail
 
@@ -36,14 +37,17 @@ echo "This will install:"
 echo "  - Homebrew (if not already on your Mac)"
 echo "  - git and gh (GitHub CLI), if needed"
 echo "  - The claurke kit to ~/.claude/claurke-kit"
-echo "  - Two helper skills that work inside Cowork"
+echo "  - Two helper skills (filesystem-level for Claude Code)"
 echo ""
-echo -e "${BOLD}After this finishes${NC}, open Cowork and type:"
-echo -e "  ${BOLD}install claurke for me${NC}"
+echo -e "${BOLD}After this finishes${NC}, you will:"
+echo "  1. Open Cowork"
+echo "  2. Add the claurke marketplace (one-time setup)"
+echo "  3. Install the claurke-onboarding plugin from it"
+echo -e "  4. Type ${BOLD}install claurke for me${NC} in a fresh session"
 echo ""
-echo "The Cowork skill takes it from there - asks you a few"
-echo "interview questions, sets up your personal voice profile,"
-echo "and walks you through the final Cowork settings."
+echo "The Cowork skill then takes it from there - asks you interview"
+echo "questions, sets up your voice profile, walks you through the"
+echo "final Cowork settings."
 echo ""
 read -p "Ready to proceed? [Y/n] " -r REPLY
 echo ""
@@ -151,27 +155,37 @@ fi
 # --- Step 6: Run bootstrap in starter mode ---
 echo ""
 print_step "Running bootstrap (starter mode)..."
-echo "  This deploys the behavioral rules, installs the helper skills,"
-echo "  and prints the manual Cowork settings you'll do next."
+echo "  This deploys the behavioral rules and installs the helper skills."
 echo ""
 bash "$KIT_DIR/bootstrap.sh" --starter
 
 # --- Done ---
 echo ""
 echo "================================================="
-echo -e "  ${GREEN}${BOLD}Install complete!${NC}"
+echo -e "  ${GREEN}${BOLD}Terminal install complete!${NC}"
 echo "================================================="
 echo ""
 echo -e "${BOLD}What just happened:${NC}"
 echo "  - The behavioral rules are now at ~/.claude/CLAUDE.md"
-echo "  - Two helper skills are installed: claurke-ops and claurke-onboarding"
+echo "  - Two helper skills are installed at ~/.claude/skills/"
 echo "  - The full kit lives at $KIT_DIR"
 echo ""
-echo -e "${BOLD}Your next move:${NC}"
+echo -e "${BOLD}Your next move (all in Cowork):${NC}"
 echo ""
-echo "  1. Open Cowork"
-echo "  2. Start a fresh session"
-echo -e "  3. Type: ${BOLD}install claurke for me${NC}"
+echo -e "  ${BOLD}1.${NC} Open Cowork on your Mac"
+echo ""
+echo -e "  ${BOLD}2.${NC} Add the claurke plugin marketplace (one-time setup):"
+echo "       Settings > Plugins > Personal tab > click the + button"
+echo "       Paste this in the URL field:"
+echo -e "         ${BOLD}clarkhager/claurke-claude-kit${NC}"
+echo "       Click Sync"
+echo ""
+echo -e "  ${BOLD}3.${NC} Install the onboarding plugin:"
+echo "       Click into the new 'claurke' marketplace tab"
+echo "       Find 'claurke-onboarding' and click the + button to install"
+echo ""
+echo -e "  ${BOLD}4.${NC} Start a fresh Cowork session and type:"
+echo -e "         ${BOLD}install claurke for me${NC}"
 echo ""
 echo "The Cowork skill takes it from there - asks you a few questions,"
 echo "sets up your voice profile, and walks you through the last steps."

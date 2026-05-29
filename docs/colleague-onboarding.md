@@ -2,7 +2,7 @@
 
 **What this is:** a versioned, multi-machine Claude workflow with anti-sycophancy rules, project memory templates, and a personal voice profile. Originally built by Clark Hager for his own use; the public repos are designed to be forkable so anyone can adopt the same patterns.
 
-**Who this is for:** anyone who uses Claude Cowork or Claude Code and wants a more opinionated, less agreeable, more memory-aware setup than the defaults. You don't need to be a developer. The recommended install path uses one terminal command and then everything else happens inside Cowork.
+**Who this is for:** anyone who uses Claude Cowork or Claude Code and wants a more opinionated, less agreeable, more memory-aware setup than the defaults. You don't need to be a developer. The recommended install path uses one terminal command, then a few clicks in Cowork.
 
 ---
 
@@ -12,10 +12,10 @@
 
 On your Mac, press **Cmd + Space**, type `Terminal`, and press Enter. A black window will open. That's Terminal. It looks intimidating but you're only going to paste one thing.
 
-### Step 2: Paste this exact command, then press Enter
+### Step 2: Paste this exact command into Terminal, then press Enter
 
 ```bash
-/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/clarkhager/claurke-claude-kit/main/install.sh)"
+curl -fsSL https://raw.githubusercontent.com/clarkhager/claurke-claude-kit/main/install.sh -o /tmp/claurke-install.sh && bash /tmp/claurke-install.sh
 ```
 
 **What this does** (so you're not pasting blindly):
@@ -24,19 +24,40 @@ On your Mac, press **Cmd + Space**, type `Terminal`, and press Enter. A black wi
 - Installs `git` (version control) and `gh` (GitHub command-line tool) if you don't already have them
 - Opens your browser so you can log in to GitHub (create an account at https://github.com/signup if you don't have one)
 - Downloads the claurke kit to a hidden folder in your home directory (`~/.claude/claurke-kit`)
-- Runs the bootstrap script which installs two helper skills into Cowork
+- Runs the bootstrap script which installs two helper skills at the filesystem level
 
-When it finishes (5-15 minutes depending on what was already installed), it prints "Install complete!" and tells you what to do next.
+When it finishes (5-15 minutes depending on what was already installed), it prints "Terminal install complete!" and tells you what to do next in Cowork.
 
-### Step 3: Open Cowork and ask it to finish the setup
+### Step 3: Add the claurke marketplace in Cowork (one-time setup)
 
-Open Cowork. Start a fresh session. Type:
+Open Cowork. Go to **Settings > Plugins > Personal tab** and click the **+** button to add a new marketplace.
+
+In the URL field, paste:
+
+```
+clarkhager/claurke-claude-kit
+```
+
+Click **Sync**. A new marketplace tab named `claurke` (or similar) appears.
+
+### Step 4: Install the claurke-onboarding plugin
+
+Click into the new `claurke` marketplace tab. You will see two plugins:
+
+- **claurke-onboarding** - this is the install skill
+- **claurke-ops** - operational helper for after install
+
+Click the **+** button next to `claurke-onboarding` to install it. (You can install `claurke-ops` later or now; it does not affect onboarding.)
+
+### Step 5: Start a fresh Cowork session and ask Claude to install
+
+Start a fresh Cowork session. Type:
 
 ```
 install claurke for me
 ```
 
-That triggers the `claurke-onboarding` skill that the Terminal step installed. The skill asks you a few interview questions (multiple choice where possible):
+That triggers the `claurke-onboarding` skill you just installed. The skill asks you a few interview questions (multiple choice where possible):
 
 - Which adoption path - full / rules-only / customize
 - Your GitHub username
@@ -45,17 +66,17 @@ That triggers the `claurke-onboarding` skill that the Terminal step installed. T
 
 Then it creates your own private GitHub repo for your identity files, populates your voice profile and personal preferences from your answers, and surfaces the last three manual steps (which are paste-into-Cowork-settings operations that Claude can't click for you).
 
-### Step 4: The three manual paste steps
+### Step 6: The three manual paste steps
 
 The skill will tell you when to do these. They're three settings in Cowork that you have to paste into yourself:
 
 1. **Cowork > Settings > General > Instructions for Claude** - paste your personal preferences file
 2. **Cowork > Settings > Cowork > Global Instructions** - paste the behavioral rules file
-3. **Cowork > Settings > Plugins** - install the Anthropic Skills bundle (for the humanizer skill, which makes voice rules fire on drafts)
+3. **Cowork > Settings > Plugins** - install the Anthropic Skills bundle (for humanizer skill, which makes voice rules fire on drafts)
 
 The skill prints the file paths and offers to display the contents so you can copy them quickly.
 
-### Step 5: Verify
+### Step 7: Verify
 
 Open a fresh Cowork session and ask Claude:
 
@@ -97,7 +118,7 @@ If you're constantly fighting Claude on "you're being too agreeable" or "this do
 - Memory-kit templates for new projects with type-aware scaffolding (code / knowledge / meta / sub-workspace)
 - An operating manual (9 sections) you can reference when something breaks
 - The `claurke-ops` skill that fires when you ask Claude about your setup
-- The `claurke-onboarding` skill (used in Step 3 above) that walks new machines through setup
+- The `claurke-onboarding` skill (used in Step 4 above) that walks new machines through setup
 - A bootstrap script that handles multi-machine sync
 - Templates for your personal overlay (voice profile, MCP list, skills list, personal preferences)
 
@@ -146,9 +167,13 @@ gh repo clone clarkhager/claurke-claude-kit ~/.claude/claurke-kit
 bash ~/.claude/claurke-kit/bootstrap.sh --starter
 ```
 
-### Step 3: Open Cowork and run the onboarding skill
+### Step 3: Add the claurke marketplace in Cowork
 
-Open Cowork. Start a fresh session. Type:
+Same as the recommended path - Cowork > Settings > Plugins > Personal > click `+` > paste `clarkhager/claurke-claude-kit` > Sync. Then install the `claurke-onboarding` plugin from the new marketplace tab.
+
+### Step 4: Open Cowork and run the onboarding skill
+
+Start a fresh Cowork session. Type:
 
 ```
 install claurke for me
@@ -198,7 +223,13 @@ Full details in `docs/operating-manual.md` section 2.
 ## FAQ
 
 **Q: Why curl-pipe-to-bash? Isn't that a security risk?**
-A: It's the same pattern Homebrew uses (`/bin/bash -c "$(curl -fsSL ...install.sh)"`). You're trusting that this repo's install.sh isn't malicious. You can read the script first at https://github.com/clarkhager/claurke-claude-kit/blob/main/install.sh if you want to verify.
+A: It's the same pattern Homebrew uses. You're trusting that this repo's install.sh isn't malicious. You can read the script first at https://github.com/clarkhager/claurke-claude-kit/blob/main/install.sh if you want to verify.
+
+**Q: I added the marketplace but Cowork shows 'Repository not accessible'. What now?**
+A: Click the "Install the Claude GitHub App" link in the modal that appears, grant access to the `clarkhager/claurke-claude-kit` repo (or all repos in your account if you trust the Claude GitHub App), then come back and click Sync again.
+
+**Q: The marketplace add doesn't work even after granting the GitHub App. What's the fallback?**
+A: The skill files are already on your disk from Step 2. You can paste this prompt into a fresh Cowork session instead of "install claurke for me": `Walk me through installing Clark Hager's claurke system on my Mac. The kit is already installed at ~/.claude/claurke-kit. Read the file ~/.claude/skills/claurke-onboarding/SKILL.md for the full interview flow, then guide me through it step by step using multiple-choice questions where applicable.` This tells Cowork explicitly to read the skill file from disk and run the interview. Same result, just one extra prompt.
 
 **Q: Do I have to fork the public repos, or can I just clone?**
 A: Cloning works. Fork only if you plan to customize the rules or templates and want your own version-controlled history.
@@ -229,8 +260,8 @@ A: `docs/operating-manual.md` section 6 (troubleshooting) has the most common is
 ## Where to get help
 
 - **The operating manual:** `~/.claude/claurke-kit/docs/operating-manual.md` after install, or https://github.com/clarkhager/claurke-claude-kit/blob/main/docs/operating-manual.md before. Nine sections, comprehensive.
-- **The claurke-ops skill:** ask Claude directly about anything in the manual. The skill fires automatically when you ask operational questions.
-- **The claurke-onboarding skill:** the install skill. Asking "install claurke" or "set up claurke" in any fresh Cowork session triggers it.
+- **The claurke-ops skill:** ask Claude directly about anything in the manual. The skill fires automatically when you ask operational questions (once it's installed).
+- **The claurke-onboarding skill:** the install skill. Asking "install claurke" or "set up claurke" in any fresh Cowork session triggers it (once it's installed via the marketplace).
 - **GitHub issues:** https://github.com/clarkhager/claurke-claude-kit/issues. File bugs or improvement requests on the public kit.
 - **Original author:** Clark Hager (https://github.com/clarkhager). He doesn't promise support but is reachable.
 

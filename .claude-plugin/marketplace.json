@@ -1,0 +1,31 @@
+{
+  "name": "claurke",
+  "owner": {
+    "name": "Clark Hager",
+    "email": "clarkhager@gmail.com"
+  },
+  "metadata": {
+    "description": "Helper skills for the claurke system. claurke-onboarding walks new users through fresh install. claurke-ops surfaces operational knowledge after install (troubleshooting, layering model, decision log, etc.). Install onboarding first; install ops once you have the system running.",
+    "version": "1.0.0"
+  },
+  "plugins": [
+    {
+      "name": "claurke-onboarding",
+      "description": "Walks new users through installing the claurke system. Use after running the install.sh one-liner from a terminal. The skill interviews you with multiple-choice questions for voice preferences and personal preferences, creates your private overlay repo, populates voice-profile.md and personal-preferences.md from your answers, and surfaces the final manual Cowork settings steps. Triggered by phrases like 'install claurke for me', 'set up claurke', 'onboard me to claurke'.",
+      "source": "./",
+      "strict": false,
+      "skills": [
+        "./skills/claurke-onboarding"
+      ]
+    },
+    {
+      "name": "claurke-ops",
+      "description": "Surfaces operational knowledge about the claurke system once it is installed - layering model, troubleshooting, update workflows, recovery scenarios, decision log, implementation gotchas for kit maintainers. Triggered automatically when users ask operational questions about their claurke setup.",
+      "source": "./",
+      "strict": false,
+      "skills": [
+        "./skills/claurke-ops"
+      ]
+    }
+  ]
+}
