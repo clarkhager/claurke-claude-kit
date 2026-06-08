@@ -19,6 +19,32 @@ print_step() { echo -e "${BLUE}>${NC} $1"; }
 print_ok()   { echo -e "${GREEN}✓${NC} $1"; }
 print_warn() { echo -e "${YELLOW}!${NC} $1"; }
 
+# Installs post-commit/post-merge hooks in personal-overlay-repo that call
+# sync-voice-profile.sh whenever canonical voice-profile.md changes.
+install_voice_hooks() {
+  local kit_dir="$1"
+  local overlay_repo="$kit_dir/personal-overlay-repo"
+  local hooks_dir="$overlay_repo/.git/hooks"
+  local sync_script="$kit_dir/scripts/sync-voice-profile.sh"
+
+  if [ ! -d "$overlay_repo/.git" ]; then
+    print_warn "personal-overlay-repo is not a git repo — voice-profile hooks not installed"
+    return
+  fi
+
+  mkdir -p "$hooks_dir"
+
+  for hook in post-commit post-merge; do
+    cat > "$hooks_dir/$hook" <<HOOK
+#!/bin/bash
+# Auto-installed by bootstrap.sh — regenerates Cowork voice-profile copies on commit/merge
+bash "$sync_script" || true
+HOOK
+    chmod +x "$hooks_dir/$hook"
+    print_ok "Hook installed: $hooks_dir/$hook"
+  done
+}
+
 usage() {
   cat <<EOF
 Usage: bash bootstrap.sh [--starter | --update | --help]
@@ -93,6 +119,16 @@ if [ "$MODE" = "update" ]; then
   # Refresh kit-shipped skills from the updated kit
   install_kit_skill "claurke-ops"
   install_kit_skill "claurke-onboarding"
+
+  # Sync voice-profile copies to Cowork project roots
+  echo ""
+  print_step "Syncing voice-profile to project roots..."
+  bash "$SCRIPT_DIR/scripts/sync-voice-profile.sh" || print_warn "voice-profile sync returned non-zero"
+
+  # Install/refresh git hooks in personal-overlay-repo (so canonical changes auto-sync)
+  echo ""
+  print_step "Installing voice-profile git hooks in personal-overlay-repo..."
+  install_voice_hooks "$SCRIPT_DIR"
 
   echo ""
   print_ok "Updates done."
@@ -182,6 +218,15 @@ Or if you'd rather do it manually, see docs/colleague-onboarding.md for the
 full command list.
 EOF
 fi
+
+# --- Voice profile sync + git hooks ---
+echo ""
+print_step "Syncing voice-profile to Cowork project roots..."
+bash "$SCRIPT_DIR/scripts/sync-voice-profile.sh" || print_warn "voice-profile sync returned non-zero"
+
+echo ""
+print_step "Installing voice-profile git hooks in personal-overlay-repo..."
+install_voice_hooks "$SCRIPT_DIR"
 
 # --- Cowork-specific manual steps ---
 echo ""

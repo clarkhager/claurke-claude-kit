@@ -3,6 +3,9 @@ personal/*
 !personal/README.md
 !personal/.gitkeep
 
+# Private overlay repo (separate git repo; canonical voice-profile lives here)
+personal-overlay-repo/
+
 # OS junk
 .DS_Store
 Thumbs.db

@@ -17,7 +17,7 @@ On my machines, `personal/` is populated with my identity files. On a colleague'
 
 Good candidates:
 
-- **Voice profile** (e.g., `clark_voice_profile.md`): tone, phrasing patterns, voice cues beyond what's in your account's personal preferences. Referenced by the rules-kit Voice section as the humanizer's source material.
+- **Voice profile** (`voice-profile.md`): tone, phrasing patterns, voice cues beyond what's in your account's personal preferences. Referenced by the rules-kit Voice section as the humanizer's source material. Canonical file lives in `personal-overlay-repo/voice-profile.md`; reached via the `personal/voice-profile.md` symlink in Claude Code, or as a generated synced copy at each Cowork project root.
 - **MCP list** (`mcp-list.md`): which MCPs you connect on a new machine, with notes on accounts. Used as a checklist during bootstrap.
 - **Account-specific notes** (`account-notes.md`): differences between your personal and work Claude accounts. What MCPs go on which, default project folders, etc.
 - **Secrets references**: if you keep API keys in 1Password or age-encrypted, the references go here (not the secrets themselves).
