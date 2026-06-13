@@ -94,6 +94,89 @@ install_kit_skill() {
   fi
 }
 
+# --- Install the daily backup script + launchd job (personal machines only) ---
+# Ships the pull-first daily-backup.sh to ~/.claude/scripts, installs the 02:00
+# launchd job, and seeds a per-machine repo list if one isn't already present.
+# The repo list (~/.claude/backup-repos.conf) is per-machine and NEVER clobbered,
+# so a fresh machine backs up nothing until the list is filled in. That ordering
+# matters: the pull-first script lands BEFORE any repo is listed, so a machine
+# can never become a divergent second writer on a single-writer repo.
+install_daily_backup() {
+  local src="$SCRIPT_DIR/scripts/daily-backup.sh"
+  local conf_example="$SCRIPT_DIR/scripts/backup-repos.conf.example"
+  local scripts_dir="$CLAUDE_DIR/scripts"
+  local dest="$scripts_dir/daily-backup.sh"
+  local conf="$CLAUDE_DIR/backup-repos.conf"
+  local plist="$HOME/Library/LaunchAgents/com.clarkhager.daily-backup.plist"
+  local label="com.clarkhager.daily-backup"
+
+  if [ ! -f "$src" ]; then
+    print_warn "daily-backup.sh not found at $src (kit may be outdated; run git pull)"
+    return
+  fi
+
+  mkdir -p "$scripts_dir" "$CLAUDE_DIR/logs" "$HOME/Library/LaunchAgents"
+  cp "$src" "$dest"
+  chmod +x "$dest"
+  print_ok "daily-backup.sh installed to $dest"
+
+  # Seed the per-machine repo list only if absent — never clobber a real list.
+  if [ -f "$conf" ]; then
+    print_ok "backup repo list already present at $conf (left untouched)"
+  elif [ -f "$conf_example" ]; then
+    cp "$conf_example" "$conf"
+    print_warn "Seeded placeholder backup list at $conf — EDIT IT, or nothing is backed up."
+  else
+    print_warn "backup-repos.conf.example missing from kit; no backup list seeded."
+  fi
+
+  # Write the launchd plist (generated so paths match this machine's \$HOME).
+  cat > "$plist" <<PLIST
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>$label</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/bin/bash</string>
+        <string>$dest</string>
+    </array>
+    <key>StartCalendarInterval</key>
+    <dict>
+        <key>Hour</key>
+        <integer>2</integer>
+        <key>Minute</key>
+        <integer>0</integer>
+    </dict>
+    <key>StandardOutPath</key>
+    <string>$CLAUDE_DIR/logs/launchd-stdout.log</string>
+    <key>StandardErrorPath</key>
+    <string>$CLAUDE_DIR/logs/launchd-stderr.log</string>
+    <key>RunAtLoad</key>
+    <false/>
+</dict>
+</plist>
+PLIST
+  print_ok "launchd plist written to $plist"
+
+  # Reload the job so the latest plist/script is registered (idempotent).
+  launchctl unload "$plist" 2>/dev/null || true
+  if launchctl load "$plist" 2>/dev/null; then
+    print_ok "launchd job '$label' loaded (runs daily at 02:00)"
+  else
+    print_warn "Could not load launchd job automatically. Load it with: launchctl load $plist"
+  fi
+}
+
+# True on a personal machine (populated overlay or an existing backup list).
+# Guards personal-only install steps during --update so colleagues running
+# --starter never get Clark's launchd job.
+is_personal_machine() {
+  [ -f "$SCRIPT_DIR/personal/voice-profile.md" ] || [ -f "$CLAUDE_DIR/backup-repos.conf" ]
+}
+
 # --- Update mode: pull latest and exit ---
 if [ "$MODE" = "update" ]; then
   echo ""
@@ -119,6 +202,13 @@ if [ "$MODE" = "update" ]; then
   # Refresh kit-shipped skills from the updated kit
   install_kit_skill "claurke-ops"
   install_kit_skill "claurke-onboarding"
+
+  # Refresh the daily backup script + launchd job (personal machines only)
+  if is_personal_machine; then
+    echo ""
+    print_step "Refreshing daily backup script + launchd job..."
+    install_daily_backup
+  fi
 
   # Sync voice-profile copies to Cowork project roots
   echo ""
@@ -217,6 +307,13 @@ You're in starter mode - the colleague-onboarding path. Recommended next move:
 Or if you'd rather do it manually, see docs/colleague-onboarding.md for the
 full command list.
 EOF
+fi
+
+# --- Daily backup script + launchd job (personal mode only) ---
+if [ "$MODE" = "personal" ]; then
+  echo ""
+  print_step "Installing daily backup script + launchd job..."
+  install_daily_backup
 fi
 
 # --- Voice profile sync + git hooks ---

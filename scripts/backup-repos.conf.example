@@ -1,0 +1,21 @@
+# backup-repos.conf — per-machine repo backup list for daily-backup.sh
+#
+# Copy this file to ~/.claude/backup-repos.conf and edit it for THIS machine.
+# It is read at 02:00 by the com.clarkhager.daily-backup launchd job. This list
+# is intentionally per-machine and is NOT tracked in git — different machines
+# back up different repo sets.
+#
+# Format (one repo per line):   name | path | pull_first
+#   path        absolute, or ~-relative (e.g. ~/Documents/Claude/Projects/MyRepo)
+#   pull_first  true  -> repo is written by a remote/server writer (e.g. a sync
+#                        service or server-side committer). Pull its commits
+#                        ff-only before committing local edits; skip the repo on
+#                        real divergence so a second writer never makes the
+#                        conflict worse.
+#               false -> normal repo, just commit + push local changes (default).
+#
+# Lines starting with # are ignored. Delete the placeholders below and add your
+# own. Nothing is backed up until you list at least one repo.
+#
+# MyVault   | ~/Documents/Claude/Projects/MyVault   | true
+# MyNotes   | ~/Documents/Claude/Projects/MyNotes   | false
