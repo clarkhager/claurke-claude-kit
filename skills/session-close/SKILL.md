@@ -69,6 +69,36 @@ Only if the project has a PRIMER.md. PRIMER is for narrative arc, not changelog.
 
 Refresh triggers: a new architectural pattern, a new operating rule, a scope or phase shift, a relationship or stakeholder change. After editing, update the "Last updated" line at the top with the date and a one-line summary.
 
+## Step 5.5: Build-log capture (The Wherehouse only)
+
+**Gate:** run this step ONLY when Step 0's CLAUDE.md is The Wherehouse meta-project (or another project whose CLAUDE.md declares a `build-log/` knowledge root and points at the `helmut-buildlog` tool). Skip silently in every other project. This is the self-documenting development memory: a synthesized, bounded build-log entry per dev session plus a secret-scrubbed cold archive.
+
+The product is the SYNTHESIZED entry, not the transcript. Capture *why it changed*, never *what happened when*. No chronology, no tool-by-tool replay, no conversational back-and-forth.
+
+**1. Synthesize the entry (in-context — identical in Cowork and Claude Code).** From the Step 1 conversation scan, write the bounded fields as a JSON spec (this is model-authored from what you know at close; it does NOT parse a transcript): `session_id`, `date`, `title`, `surface` (`cowork`|`claude-code`), `repos`, `areas`, `decisions` (each `{decision, rationale, memory_ref?}`), `rejected_alternatives` (`{option, why}`), `reversals` (`{from, to, evidence}` — the high-value narrative, always include the *triggering evidence*), `gotchas` (`{gotcha, ref?}`), `commits`/`briefs`/`files` (links, not prose), `open_threads`. Then write it:
+
+```
+echo '<json-spec>' | uv run --project ~/Documents/Claude/Projects/helmut-retrieval \
+  helmut-buildlog synthesize --repo "~/Documents/Claude/Projects/The Wherehouse" --spec -
+```
+
+The writer scrubs secrets, runs the fail-on-leak gate, and is idempotent on `session_id` (re-running overwrites that session's one entry — no duplicates).
+
+**2. Archive the scrubbed raw transcript (surface-specific — this is the only part that differs by surface).**
+- **In Cowork:** pull this session's transcript with the `session_info` tool (`list_sessions` to find the active session, then `read_transcript`), and pipe its text in:
+  ```
+  helmut-buildlog archive --archive-repo ~/Documents/Claude/Projects/wherehouse-buildlog-archive \
+    --surface cowork --session-id <id> --date <iso> --transcript -
+  ```
+- **In Claude Code:** pass this session's JSONL path (`~/.claude/projects/<slug>/<session-id>.jsonl`):
+  ```
+  helmut-buildlog archive --archive-repo ~/Documents/Claude/Projects/wherehouse-buildlog-archive \
+    --surface code --session-id <id> --date <iso> --transcript <path-to-jsonl>
+  ```
+The archiver scrubs + leak-gates before writing and commits to the dedicated archive repo (unindexed cold backstop, never a knowledge root). If the `gh` remote exists, it stays local-only unless Clark has approved a push.
+
+Report both outputs (entry path + archive path) in Step 6.
+
 ## Step 6: Confirmation output
 
 After all writes and proposals, output a compact summary:
@@ -81,6 +111,7 @@ Files updated:
 - MEMORY.md - [Cat 1 written: N (explicit trigger) | Cat 2 edits: N | Cat 3 maintenance: N | or "not touched"]
 - PRIMER.md - [refreshed: reason | skipped: no narrative trigger | n/a]
 - [gotcha target file] - [N added | none]
+- Build log - [entry path + archive path written | n/a: not The Wherehouse]
 
 Memory candidates needing your call:
 - [claim] (from: [where in session]) - write it? Y/N
