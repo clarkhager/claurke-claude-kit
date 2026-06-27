@@ -23,6 +23,7 @@ Dependencies of the claurke-rules-kit CLAUDE.md or shipped as part of the claurk
 | doc-coauthoring | Structured documentation workflow |
 | typography | Typography enforcement in UI work |
 | ui-ux-pro-max | UI/UX design intelligence |
+| impeccable | Frontend design pipeline: `/impeccable shape`, `audit`, `polish` + `npx impeccable detect` (deterministic, no-LLM slop check). Marketplace `pbakaus/impeccable`; install user-scoped in Code and via Settings > Plugins in Cowork. Companion to ui-ux-pro-max for the Rule 21 design pipeline. |
 
 ## Install when starting development projects
 
