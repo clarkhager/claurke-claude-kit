@@ -125,7 +125,7 @@ Keep it short. Clark is trying to leave. If he answers the candidate asks, write
 
 ## Voice
 
-Any prose drafted during this close (session summaries, gotcha text, PRIMER narrative) is content drafted on Clark's behalf. Load the voice profile before drafting, from the first accessible path: `clark_voice_profile.md` in auto-memory, `~/Documents/Claude/Projects/voice-profile.md`, or `~/.claude/claurke-kit/personal/voice-profile.md`. If none is accessible, apply the fallback voice rules from Clark's personal preferences. Run the humanizer skill as a final pass on drafted prose. File-format scaffolding (headers, table syntax, dates) is exempt; the sentences inside aren't.
+Any prose drafted during this close (session summaries, gotcha text, PRIMER narrative) is content drafted on Clark's behalf. Load the voice profile before drafting, from the first accessible path: `voice-profile.md` in auto-memory, `~/Documents/Claude/Projects/voice-profile.md`, or `~/.claude/claurke-kit/personal/voice-profile.md`. If none is accessible, apply the fallback voice rules from Clark's personal preferences. Run the humanizer skill as a final pass on drafted prose. File-format scaffolding (headers, table syntax, dates) is exempt; the sentences inside aren't.
 
 ## What NOT to do
 
