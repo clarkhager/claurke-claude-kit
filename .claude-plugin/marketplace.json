@@ -5,8 +5,8 @@
     "email": "clarkhager@gmail.com"
   },
   "metadata": {
-    "description": "Helper skills for the claurke system. claurke-onboarding walks new users through fresh install. claurke-ops surfaces operational knowledge after install (troubleshooting, layering model, decision log, etc.) and ships session-close, the universal session-close protocol for any claurke project without a dedicated close skill. Install onboarding first; install ops once you have the system running.",
-    "version": "1.1.0"
+    "description": "Helper skills for the claurke system. claurke-onboarding walks new users through fresh install. claurke-ops surfaces operational knowledge after install (troubleshooting, layering model, decision log, etc.) and ships session-close, the universal session-close protocol for any claurke project without a dedicated close skill, plus spec-shard-with-contracts, which shards a locked plan into resumable spec docs carrying explicit inter-shard contracts. Install onboarding first; install ops once you have the system running.",
+    "version": "1.2.0"
   },
   "plugins": [
     {
@@ -20,12 +20,13 @@
     },
     {
       "name": "claurke-ops",
-      "description": "Surfaces operational knowledge about the claurke system once it is installed - layering model, troubleshooting, update workflows, recovery scenarios, decision log, implementation gotchas for kit maintainers. Triggered automatically when users ask operational questions about their claurke setup. Also ships session-close, the universal session-close protocol (STATUS.md update, three-category memory writes, gotcha candidates for approval, conditional PRIMER.md refresh) for any claurke project without a dedicated close skill.",
+      "description": "Surfaces operational knowledge about the claurke system once it is installed - layering model, troubleshooting, update workflows, recovery scenarios, decision log, implementation gotchas for kit maintainers. Triggered automatically when users ask operational questions about their claurke setup. Also ships session-close, the universal session-close protocol (STATUS.md update, three-category memory writes, gotcha candidates for approval, conditional PRIMER.md refresh) for any claurke project without a dedicated close skill, and spec-shard-with-contracts, which decomposes a locked master plan into resumable spec docs each carrying an explicit contract (assumes-done / guarantees-for-next / validation) for long-running, multi-session builds.",
       "source": "./",
       "strict": false,
       "skills": [
         "./skills/claurke-ops",
-        "./skills/session-close"
+        "./skills/session-close",
+        "./skills/spec-shard-with-contracts"
       ]
     }
   ]
