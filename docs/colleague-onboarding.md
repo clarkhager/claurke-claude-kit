@@ -24,7 +24,7 @@ curl -fsSL https://raw.githubusercontent.com/clarkhager/claurke-claude-kit/main/
 - Installs `git` (version control) and `gh` (GitHub command-line tool) if you don't already have them
 - Opens your browser so you can log in to GitHub (create an account at https://github.com/signup if you don't have one)
 - Downloads the claurke kit to a hidden folder in your home directory (`~/.claude/claurke-kit`)
-- Runs the bootstrap script which installs two helper skills at the filesystem level
+- Runs the bootstrap script which installs the kit's helper skills at the filesystem level
 
 When it finishes (5-15 minutes depending on what was already installed), it prints "Terminal install complete!" and tells you what to do next in Cowork.
 

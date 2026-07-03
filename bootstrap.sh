@@ -94,6 +94,64 @@ install_kit_skill() {
   fi
 }
 
+# Skills that ship in the plugin manifest but must NOT auto-install on Claude Code.
+# session-close is a phrase-triggered Cowork behavioral skill; auto-closing a Claude Code
+# worker-session is unwanted, so it stays Cowork-only. The exclusion lives HERE, in the
+# installer — not as a shape change to marketplace.json's skills array — because both the
+# Cowork and the Claude Code plugin loaders consume that array, so it must stay a plain
+# string array. Add a skill name to this list to keep it Cowork-only.
+COWORK_ONLY=("session-close")
+
+# --- Install every kit skill listed in the plugin manifest (except COWORK_ONLY) ---
+# Reads .claude-plugin/marketplace.json's per-plugin skills arrays and installs each skill,
+# so bundled non-namesake skills (spec-shard-with-contracts, ...) are no longer silently
+# skipped. Replaces the old hardcoded install_kit_skill "claurke-ops"/"claurke-onboarding"
+# pair. python3 is used because it is already a kit dependency (scripts/new-project.sh uses
+# the same idiom); jq is not stock macOS and not installed by install.sh.
+install_manifest_skills() {
+  local manifest="$SCRIPT_DIR/.claude-plugin/marketplace.json"
+  if ! command -v python3 >/dev/null; then
+    print_warn "python3 not found — no kit skills installed (install python3 and re-run)"
+    return
+  fi
+  if [ ! -f "$manifest" ]; then
+    print_warn "marketplace.json not found at $manifest — no kit skills installed (broken kit; run git pull)"
+    return
+  fi
+
+  # Emit the basename of every skill path across all plugins. Command substitution guarded by
+  # `if !` so a parse failure warns loudly instead of silently installing nothing (the exact
+  # silent-green bug this fixes); a bare x=$(...) would abort under `set -e` before any check.
+  local skills_out
+  if ! skills_out=$(python3 - "$manifest" <<'PYEOF'
+import sys, json, os
+with open(sys.argv[1]) as f:
+    data = json.load(f)
+for plugin in data.get("plugins", []):
+    for skill in plugin.get("skills", []):
+        print(os.path.basename(skill.rstrip("/")))
+PYEOF
+  ); then
+    print_warn "marketplace.json parse failed — no kit skills installed (check the manifest)"
+    return
+  fi
+
+  local skill cowork skip
+  while IFS= read -r skill; do
+    [ -z "$skill" ] && continue
+    skip=0
+    # ${arr[@]+"${arr[@]}"} so an emptied COWORK_ONLY doesn't trip `set -u` on bash 3.2.
+    for cowork in ${COWORK_ONLY[@]+"${COWORK_ONLY[@]}"}; do
+      [ "$skill" = "$cowork" ] && { skip=1; break; }
+    done
+    if [ "$skip" -eq 1 ]; then
+      print_warn "$skill skipped (Cowork-only; not auto-installed on Claude Code)"
+      continue
+    fi
+    install_kit_skill "$skill"
+  done <<< "$skills_out"
+}
+
 # --- Install the daily backup script + launchd job (personal machines only) ---
 # Ships the pull-first daily-backup.sh to ~/.claude/scripts, installs the 02:00
 # launchd job, and seeds a per-machine repo list if one isn't already present.
@@ -200,8 +258,7 @@ if [ "$MODE" = "update" ]; then
   git -C "$SCRIPT_DIR" pull --ff-only origin main || print_warn "claurke-claude-kit update failed"
 
   # Refresh kit-shipped skills from the updated kit
-  install_kit_skill "claurke-ops"
-  install_kit_skill "claurke-onboarding"
+  install_manifest_skills
 
   # Refresh the daily backup script + launchd job (personal machines only)
   if is_personal_machine; then
@@ -257,8 +314,7 @@ bash "$RULES_KIT_DIR/deploy.sh" --global
 # --- Install kit-shipped skills ---
 echo ""
 print_step "Installing kit-shipped skills..."
-install_kit_skill "claurke-ops"
-install_kit_skill "claurke-onboarding"
+install_manifest_skills
 print_warn "For Cowork: kit-shipped skills may also need manual install via Settings > Plugins. The skill files are at $SKILLS_DIR/"
 
 # --- Skill check ---
