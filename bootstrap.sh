@@ -95,12 +95,17 @@ install_kit_skill() {
 }
 
 # Skills that ship in the plugin manifest but must NOT auto-install on Claude Code.
-# session-close is a phrase-triggered Cowork behavioral skill; auto-closing a Claude Code
-# worker-session is unwanted, so it stays Cowork-only. The exclusion lives HERE, in the
-# installer — not as a shape change to marketplace.json's skills array — because both the
-# Cowork and the Claude Code plugin loaders consume that array, so it must stay a plain
-# string array. Add a skill name to this list to keep it Cowork-only.
-COWORK_ONLY=("session-close")
+#
+# COWORK_ONLY = any phrase-triggered close-class skill (session-close, session-close-*,
+# session-close-wherehouse). These must NOT auto-install on Claude Code — a "goodnight" /
+# "session close" phrase would auto-close a worker session mid-task (JAD-24 invariant).
+# Standalone tools like linear-ops install everywhere.
+#
+# The exclusion lives HERE, in the installer — not as a shape change to marketplace.json's
+# skills array — because both the Cowork and the Claude Code plugin loaders consume that
+# array, so it must stay a plain string array. Add a close-class skill name here to keep it
+# Cowork-only.
+COWORK_ONLY=("session-close" "session-close-wherehouse")
 
 # --- Install every kit skill listed in the plugin manifest (except COWORK_ONLY) ---
 # Reads .claude-plugin/marketplace.json's per-plugin skills arrays and installs each skill,
