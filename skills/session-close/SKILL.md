@@ -1,7 +1,7 @@
 ---
 name: session-close
 description: |
-  Universal session-close protocol for any claurke project without a dedicated close skill. Updates STATUS.md with a session summary and next move, applies the three-category memory write protocol to MEMORY.md, proposes gotcha candidates for approval, prunes the STATUS session chain into STATUS-archive.md, refreshes PRIMER.md only when load-bearing facts changed, and ends by emitting a copy-paste kickoff prompt for the next session. Runs the close as an AskUserQuestion interview (candidate approval, next-session ordering, open decisions - recommendations baked into every option). Project-agnostic: reads the project's CLAUDE.md for overrides, makes zero Linear/git/deploy assumptions. Trigger whenever Clark says "session close", "close it out", "I'm done for now", "let's call it", "goodnight", "that's it for today", "save context", "save everything", or signals leaving, tired, or switching - in ANY project without its own session-close skill (Home Assistant, BizzaBrain, claurke, new projects). Do NOT trigger for Wayfinder/Bizzabo Academy (session-close-wayfinder), Actually/jadyly-app (session-close-actually), or The Wherehouse/Linear-tracked dev work (session-close-wherehouse). Do NOT trigger on "wrap up", "daily wrap", "session log" (daily-wrap). Err toward triggering in uncovered projects - better to run and capture nothing than skip and lose context.
+  Universal session-close protocol for any claurke project without a dedicated close skill. Updates STATUS.md with a session summary and next move, applies the three-category memory write protocol to MEMORY.md, proposes gotcha candidates for approval, prunes the STATUS session chain into STATUS-archive.md, refreshes PRIMER.md only when load-bearing facts changed, and ends by emitting a copy-paste kickoff prompt for the next session. Runs the close as an AskUserQuestion interview (candidate approval, next-session ordering, open decisions - recommendations baked into every option). Project-agnostic: reads the project's CLAUDE.md for overrides, makes zero Linear/git/deploy assumptions. Trigger whenever Clark says "session close", "close it out", "I'm done for now", "let's call it", "goodnight", "that's it for today", "save context", "save everything", or signals leaving, tired, or switching - in ANY project without its own session-close skill (Home Assistant, BizzaBrain, claurke, new projects). Do NOT trigger for Wayfinder/Bizzabo Academy (session-close-wayfinder), or The Wherehouse/Linear-tracked dev work (session-close-wherehouse). Do NOT trigger on "wrap up", "daily wrap", "session log" (daily-wrap). Err toward triggering in uncovered projects - better to run and capture nothing than skip and lose context.
 ---
 
 # Session Close - Universal Protocol
@@ -12,7 +12,9 @@ This is not a ceremony. It's a checklist. Run it fast and get Clark out the door
 
 **This skill is 100% project-agnostic.** It makes no assumptions about Linear, git, PRs, branches, or deploys - a Home Assistant close and a code close run the exact same steps. Dev-specific gates (board reconcile, git loose-ends) live in the dev variant `session-close-wherehouse`, which delegates the universal layer back here.
 
-**Routing note:** If you're in a Wayfinder / Bizzabo Academy session, use `session-close-wayfinder`. Actually / jadyly-app, use `session-close-actually`. The Wherehouse or any Linear/JAD-tracked dev work, use `session-close-wherehouse`. Those skills carry project-specific gates this one intentionally omits. This skill is for every other project.
+**Routing note:** If you're in a Wayfinder / Bizzabo Academy session, use `session-close-wayfinder`. The Wherehouse or any Linear/JAD-tracked dev work, use `session-close-wherehouse`. Those skills carry project-specific gates this one intentionally omits. This skill is for every other project.
+
+**Intentionally Cowork-only:** kept off Claude Code auto-install by the bootstrap `COWORK_ONLY` guard (JAD-24) - a phrase-triggered close must not fire mid-task in a worker session. Not a missing install.
 
 ## Step 0: Orient on the project
 
@@ -152,10 +154,10 @@ Any prose drafted during this close (session summaries, gotcha text, PRIMER narr
 - Don't rewrite MEMORY.md wholesale - append or edit specific entries only
 - Don't write to MEMORY.md without sorting the write into a category first - uncertain means Category 1
 - Don't add Linear, git, PR, or deploy steps here - this skill is generic; those live in `session-close-wherehouse`
-- Don't run this in Wayfinder, Actually, or Wherehouse/dev sessions - their dedicated skills carry gates this one doesn't have
+- Don't run this in Wayfinder or Wherehouse/dev sessions - their dedicated skills carry gates this one doesn't have
 - Don't invent project structure - no memory files means offer new-project first, not freelance scaffolding
 - Don't block Clark from leaving - if something is unclear, write what you know, flag it in STATUS, and let the next session pick it up
 
 ## Provenance
 
-This skill is the extracted universal layer of `session-close-wayfinder`, `session-close-actually`, and `session-close-wherehouse` (base built 2026-06-05; upgraded 2026-07-03 per JAD-26 with the AskUserQuestion interview, the copy-paste kickoff prompt, and the STATUS prune). It encodes the rules-kit Memory Write Discipline section (the project-agnostic three-category model). The Wherehouse build-log capture that briefly lived here moved to `session-close-wherehouse` (JAD-27), keeping this layer 100% generic. Canonical home for the memory rules: claurke-rules-kit `rules/CLAUDE.md`.
+This skill is the extracted universal layer of `session-close-wayfinder` and `session-close-wherehouse` (base built 2026-06-05; upgraded 2026-07-03 per JAD-26 with the AskUserQuestion interview, the copy-paste kickoff prompt, and the STATUS prune). It encodes the rules-kit Memory Write Discipline section (the project-agnostic three-category model). The Wherehouse build-log capture that briefly lived here moved to `session-close-wherehouse` (JAD-27), keeping this layer 100% generic. Canonical home for the memory rules: claurke-rules-kit `rules/CLAUDE.md`.

@@ -1,14 +1,16 @@
 ---
 name: session-close-wherehouse
 description: |
-  Dev session-close variant for The Wherehouse and any Linear/JAD-tracked development work. Mirrors session-close-wayfinder/actually: it delegates the entire UNIVERSAL close layer (STATUS update + prune, three-category MEMORY writes, gotcha approval, PRIMER refresh, AskUserQuestion interview, copy-paste kickoff prompt) to the generic `session-close` skill, then adds the DEV gates that generic intentionally omits - a `linear-ops` board reconcile (move shipped tickets to Done with receipts, catch drift) and a git LOOSE-ENDS sweep (open PRs, unmerged branches, merged-but-undeployed repos, so nothing like PR #37 slips through) - plus the Wherehouse build-log capture. Trigger whenever Clark signals closing a session ("session close", "close it out", "I'm done for now", "let's call it", "goodnight", "that's it for today", "save context", "save everything", or signals leaving/tired/switching) AND the session is in The Wherehouse project OR is Linear/JAD-tracked dev work (helmut-retrieval, the kit repos, any repo with a JAD board and open PRs). This is the close skill for dev work: when it applies, the generic session-close does NOT fire (same routing as the other variants). Do NOT trigger for non-dev projects (Home Assistant, BizzaBrain - those use generic session-close), Wayfinder (session-close-wayfinder), or Actually (session-close-actually). Do NOT trigger on "wrap up"/"daily wrap" (daily-wrap).
+  Dev session-close variant for The Wherehouse and any Linear/JAD-tracked development work. Mirrors session-close-wayfinder: it delegates the entire UNIVERSAL close layer (STATUS update + prune, three-category MEMORY writes, gotcha approval, PRIMER refresh, AskUserQuestion interview, copy-paste kickoff prompt) to the generic `session-close` skill, then adds the DEV gates that generic intentionally omits - a `linear-ops` board reconcile (move shipped tickets to Done with receipts, catch drift) and a git LOOSE-ENDS sweep (open PRs, unmerged branches, merged-but-undeployed repos, so nothing like PR #37 slips through) - plus the Wherehouse build-log capture. Trigger whenever Clark signals closing a session ("session close", "close it out", "I'm done for now", "let's call it", "goodnight", "that's it for today", "save context", "save everything", or signals leaving/tired/switching) AND the session is in The Wherehouse project OR is Linear/JAD-tracked dev work (helmut-retrieval, the kit repos, any repo with a JAD board and open PRs). This is the close skill for dev work: when it applies, the generic session-close does NOT fire (same routing as the other variants). Do NOT trigger for non-dev projects (Home Assistant, BizzaBrain - those use generic session-close), or Wayfinder (session-close-wayfinder). Do NOT trigger on "wrap up"/"daily wrap" (daily-wrap).
 ---
 
 # Session Close - Wherehouse / Dev Variant
 
 You're closing a dev session - The Wherehouse or other Linear/JAD-tracked work. This variant is thin on purpose: the universal close logic lives in the generic `session-close` skill and is identical across all Clark's projects, so this skill **delegates that layer** and only adds what's specific to dev work: Linear board hygiene, git loose-ends, and the Wherehouse build-log.
 
-The same decoupling as `session-close-wayfinder` / `session-close-actually`: generic stays generic, project gates live here.
+The same decoupling as `session-close-wayfinder`: generic stays generic, project gates live here.
+
+**Intentionally Cowork-only:** kept off Claude Code auto-install by the bootstrap `COWORK_ONLY` guard (JAD-24) - a phrase-triggered close must not fire mid-task in a worker session. Not a missing install.
 
 ## Step 1: Run the universal close layer
 
@@ -58,12 +60,14 @@ The writer scrubs secrets, runs the fail-on-leak gate, and is idempotent on `ses
 **2. Archive the scrubbed raw transcript (surface-specific — this is the only part that differs by surface).**
 - **In Cowork:** pull this session's transcript with the `session_info` tool (`list_sessions` to find the active session, then `read_transcript`), and pipe its text in:
   ```
-  helmut-buildlog archive --archive-repo ~/Documents/Claude/Projects/wherehouse-buildlog-archive \
+  uv run --project ~/Documents/Claude/Projects/helmut-retrieval \
+    helmut-buildlog archive --archive-repo ~/Documents/Claude/Projects/wherehouse-buildlog-archive \
     --surface cowork --session-id <id> --date <iso> --transcript -
   ```
 - **In Claude Code:** pass this session's JSONL path (`~/.claude/projects/<slug>/<session-id>.jsonl`):
   ```
-  helmut-buildlog archive --archive-repo ~/Documents/Claude/Projects/wherehouse-buildlog-archive \
+  uv run --project ~/Documents/Claude/Projects/helmut-retrieval \
+    helmut-buildlog archive --archive-repo ~/Documents/Claude/Projects/wherehouse-buildlog-archive \
     --surface code --session-id <id> --date <iso> --transcript <path-to-jsonl>
   ```
 The archiver scrubs + leak-gates before writing and commits to the dedicated archive repo (unindexed cold backstop, never a knowledge root). If the `gh` remote exists, it stays local-only unless Clark has approved a push.
@@ -102,4 +106,4 @@ Then the paste-ready kickoff prompt (generic template), with the loose ends and 
 
 ## Provenance
 
-Built 2026-07-03 per JAD-27, blocked-by the JAD-26 generic `session-close` upgrade it composes. Mirrors `session-close-wayfinder` / `session-close-actually`: generic stays project-agnostic, dev gates (Linear reconcile via `linear-ops`, git loose-ends, Wherehouse build-log) live here. The build-log capture relocated verbatim from the generic skill's former Step 5.5 (it was Wherehouse-specific and became dead code once routing sends Wherehouse here); it wraps the JAD-11 `helmut-buildlog` tooling unchanged.
+Built 2026-07-03 per JAD-27, blocked-by the JAD-26 generic `session-close` upgrade it composes. Mirrors `session-close-wayfinder`: generic stays project-agnostic, dev gates (Linear reconcile via `linear-ops`, git loose-ends, Wherehouse build-log) live here. The build-log capture relocated verbatim from the generic skill's former Step 5.5 (it was Wherehouse-specific and became dead code once routing sends Wherehouse here); it wraps the JAD-11 `helmut-buildlog` tooling unchanged.
