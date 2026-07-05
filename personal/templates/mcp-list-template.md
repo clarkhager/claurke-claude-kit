@@ -24,8 +24,6 @@ Useful in any context (knowledge work or development).
 |-----|-----|
 | Railway | Deployment and infrastructure |
 | Supabase | Backend, DB, edge functions |
-| Vercel | Deployment, projects, logs |
-| Clerk | Auth SDK snippets |
 | Sentry | Error monitoring |
 | Apify | Web scraping |
 | Jam | Browser session recording, debugging |

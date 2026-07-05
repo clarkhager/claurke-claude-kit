@@ -167,7 +167,7 @@ This is the canonical source for the voice rules Claude follows when drafting on
 Copy `personal/templates/mcp-list-template.md` into your personal overlay as `mcp-list.md`. The template is organized by:
 
 - **Always install**: Gmail, Slack, Notion, GitHub, Atlassian/Jira, Postman, Claude in Chrome, PDF Viewer, Context7
-- **Development projects**: Railway, Supabase, Vercel, Clerk, Sentry, Apify, Jam, Desktop Commander
+- **Development projects**: Supabase, Apify, Jam
 - **Design projects**: Figma, Canva, Replicate, Higgsfield, Gemini Image
 - **Personal additions**: your space for niche or company-specific MCPs (e.g., Spotify, Home Assistant, Amie)
 

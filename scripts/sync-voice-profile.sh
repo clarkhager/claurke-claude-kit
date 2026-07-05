@@ -20,9 +20,7 @@ PROJECTS_DIR="$HOME/Documents/Claude/Projects"
 
 # Out-of-tree project roots to include alongside auto-discovered ones.
 # Add new out-of-tree roots here; auto-discovery handles ~/Documents/Claude/Projects/*.
-EXTRAS=(
-  "$HOME/Desktop/jadyly-app"
-)
+EXTRAS=()
 
 BANNER="<!-- DO NOT EDIT — generated copy from ~/.claude/claurke-kit/personal-overlay-repo/voice-profile.md
      All edits go in the canonical claurke-kit file, not here.
@@ -53,7 +51,7 @@ if [ -d "$PROJECTS_DIR" ]; then
     fi
   done
 fi
-for extra in "${EXTRAS[@]}"; do
+for extra in ${EXTRAS[@]+"${EXTRAS[@]}"}; do
   if [ -d "$extra" ]; then
     ROOTS+=("$extra")
   fi
