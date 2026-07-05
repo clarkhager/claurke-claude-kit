@@ -58,7 +58,7 @@ If the question is about an existing claurke install (something broken, where do
 Fire whenever the question is operational about Clark's Claude workflow on a system that's already installed. Specific triggers:
 
 - **Layering**: "where do my voice rules live," "why is this in two places," "is this in personal preferences or rules-kit," "layering model," "dedup," "what goes in which slot"
-- **Setup of new projects (not new machines)**: "start a new project," "how do I deploy memory-kit," "new-project script," "sub-workspace"
+- **Setup of new projects — do NOT fire; delegate**: "start a new project," "new-project script," "sub-workspace," "make a subfolder for X" all belong to the **new-project** skill (which runs the interview and scaffolds). Fire claurke-ops only for questions ABOUT the machinery ("how does memory-kit deploy work," "why did new-project.sh fail")
 - **Updates**: "how do I update on this machine," "did rules-kit change," "pull latest"
 - **Troubleshooting**: "why aren't the rules firing," "Claude isn't following my preferences," "fix my hooks," "humanizer not running," "side doc not loading," "drafts sound wrong"
 - **Recovery**: "I deleted my personal overlay," "Claude isn't loading my CLAUDE.md," "kit drift," "renamed a folder and things broke"

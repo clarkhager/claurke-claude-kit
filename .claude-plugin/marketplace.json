@@ -6,7 +6,7 @@
   },
   "metadata": {
     "description": "Helper skills for the claurke system. claurke-onboarding walks new users through fresh install. claurke-ops surfaces operational knowledge after install (troubleshooting, layering model, decision log, etc.) and ships session-close, the universal session-close protocol for any claurke project without a dedicated close skill; session-close-wherehouse, its dev variant that adds Linear/git close gates; linear-ops, standalone Linear board management for JAD-tracked dev work; plus spec-shard-with-contracts, which shards a locked plan into resumable spec docs carrying explicit inter-shard contracts. Install onboarding first; install ops once you have the system running.",
-    "version": "1.3.0"
+    "version": "1.4.0"
   },
   "plugins": [
     {
@@ -20,7 +20,7 @@
     },
     {
       "name": "claurke-ops",
-      "description": "Surfaces operational knowledge about the claurke system once it is installed - layering model, troubleshooting, update workflows, recovery scenarios, decision log, implementation gotchas for kit maintainers. Triggered automatically when users ask operational questions about their claurke setup. Also ships session-close, the universal session-close protocol (AskUserQuestion close interview, STATUS.md update + prune to STATUS-archive.md, three-category memory writes, gotcha candidates for approval, conditional PRIMER.md refresh, copy-paste next-session kickoff prompt) for any claurke project without a dedicated close skill; session-close-wherehouse, the dev variant that delegates that universal layer and adds Linear board reconcile + git loose-ends gates; linear-ops, standalone Linear board management (JAD ticket conventions, state reconcile, board hygiene, map shipped PRs to Done with receipts) triggerable any time; and spec-shard-with-contracts, which decomposes a locked master plan into resumable spec docs each carrying an explicit contract (assumes-done / guarantees-for-next / validation) for long-running, multi-session builds.",
+      "description": "Surfaces operational knowledge about the claurke system once it is installed - layering model, troubleshooting, update workflows, recovery scenarios, decision log, implementation gotchas for kit maintainers. Triggered automatically when users ask operational questions about their claurke setup. Also ships session-close, the universal session-close protocol (AskUserQuestion close interview, STATUS.md update + prune to STATUS-archive.md, three-category memory writes, gotcha candidates for approval, conditional PRIMER.md refresh, copy-paste next-session kickoff prompt) for any claurke project without a dedicated close skill; session-close-wherehouse, the dev variant that delegates that universal layer and adds Linear board reconcile + git loose-ends gates; linear-ops, standalone Linear board management (JAD ticket conventions, state reconcile, board hygiene, map shipped PRs to Done with receipts) triggerable any time; spec-shard-with-contracts, which decomposes a locked master plan into resumable spec docs each carrying an explicit contract (assumes-done / guarantees-for-next / validation) for long-running, multi-session builds; and new-project, the interview-driven scaffolder for new claurke projects and nested sub-workspaces (runs scripts/new-project.sh headlessly in Claude Code, scaffolds via file tools in Cowork).",
       "source": "./",
       "strict": false,
       "skills": [
@@ -28,7 +28,8 @@
         "./skills/session-close",
         "./skills/session-close-wherehouse",
         "./skills/linear-ops",
-        "./skills/spec-shard-with-contracts"
+        "./skills/spec-shard-with-contracts",
+        "./skills/new-project"
       ]
     }
   ]
