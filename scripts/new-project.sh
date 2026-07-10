@@ -360,6 +360,7 @@ esac
 
 echo ""
 echo "First-session kickoff prompt:"
-echo "  New session in $PROJECT_NAME. Read CLAUDE.md, MEMORY.md, and STATUS.md."
+echo "  New session in $PROJECT_NAME. Read STATUS.md first (next move + live state); CLAUDE.md is auto-loaded."
+echo "  MEMORY.md only on its trigger (before making/overturning a decision)."
 echo "  Tell me what you know and what the next move is."
 echo ""
