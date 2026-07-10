@@ -64,13 +64,21 @@ MEMORY.md writes follow the universal memory write discipline from the rules-kit
 
 **Category 2 - edits to existing entries (trigger OR verifiable event).** Changing an existing entry requires either an explicit trigger from Clark ("update the note about X") or a verifiable in-session event that made the entry stale: a tool call result, a file change with a citable diff, or a decision Clark stated this session. The hard guard: you must point at the specific session action that made the old entry stale. Staleness inferred from outside the session (Clark mentioned something happened elsewhere) doesn't qualify - that's Category 1, surface it as a candidate. When editing, preserve the rest of the file byte-for-byte; never rewrite MEMORY.md wholesale.
 
+**Supersession-at-write (Category 2 extension - JAD-93 §6.1).** Writing any entry that changes the answer of an existing entry REQUIRES marking that entry Superseded (one-line tombstone + pointer) in the same write. The new entry is itself the verifiable event - no separate trigger needed. An append that silently contradicts an older entry is a protocol violation, not a style issue. Transitive supersession: the tombstone's pointer MUST target the CURRENT head of the supersession chain, never a row that is itself superseded - verify the target is still active before writing the pointer.
+
 **Category 3 - mechanical maintenance (inline with report).** Bookkeeping with deterministic rules runs inline without a trigger, under two conditions: the trigger is a specific verifiable event (an operation you performed, a file-system change you made), and you report the edit in the confirmation output. If the event is inferred rather than observed, it's not Category 3.
+
+**One narrative per session (JAD-93 §6.1).** The close writes exactly ONE narrative - the STATUS close block (Step 5). MEMORY rows, headline lines, and the kickoff prompt cite it; they never restate it. "Last updated" headlines are capped at 2 lines everywhere; "Prior:" chains are deleted, not maintained (git history + the archives own the past).
+
+**Entry budgets (JAD-93 §6.1).** MEMORY rows are ≤3 lines; detail lives in the cited brief or close-block. Gotchas are written as a one-liner (project CLAUDE.md) + narrative (GOTCHAS.md) pair in one motion. A gotcha whose canonical home is another repo gets the one-liner THERE and at most a pointer here.
 
 The failure mode this protocol prevents: silent memory drift. Quiet writes accumulate across sessions and corrupt the source of truth; missed captures mean decisions decay. The categories balance both risks.
 
 ## Step 4: Write approved gotchas
 
-Write only the gotchas Clark approved in Step 2B. Where they go depends on the project - check the CLAUDE.md file map from Step 0. Common homes: a Known Gotchas section in the project CLAUDE.md, a `GOTCHAS.md`, or a `LESSONS.md`. If the project defines none, propose adding a Known Gotchas section to the project CLAUDE.md and confirm the location with Clark before writing.
+Write only the gotchas Clark approved in Step 2B. Where they go depends on the project - check the CLAUDE.md file map from Step 0. Common homes: a Known Gotchas section in the project CLAUDE.md, a `GOTCHAS.md`, or a `LESSONS.md`. Projects on the File Map v2 taxonomy write the pair: one-line tell in CLAUDE.md + narrative at a `GOTCHAS.md#anchor`, in one motion (the entry-budget rule from Step 3). If the project defines none, propose adding a Known Gotchas section to the project CLAUDE.md and confirm the location with Clark before writing.
+
+**Mandatory per gotcha:** ask "does this supersede an existing entry? which?" - and record the answer in the close report (Step 8). If it supersedes one, apply supersession-at-write from Step 3: tombstone the old entry (pointing at the current chain head) in the same motion.
 
 Draft each as one or two lines - the failure mode and the fix or rule - and date it. Respect any line ceiling the project enforces on the target file; if adding gotchas would breach it, flag the oldest entries as archive candidates rather than silently growing the file. Watch for duplication: if an approved fact was also written to MEMORY.md as a Category-1 entry (because Clark gave a trigger phrase), don't write the same rule to two files - keep it in the one its content fits best and note the call.
 
@@ -85,19 +93,24 @@ STATUS.md is the next-move file - the first thing the next session reads. Update
 
 Update sections in place; don't duplicate or append a second copy of the file's structure.
 
-## Step 6: Prune the STATUS session chain
+## Step 6: Prune the STATUS session chain (unconditional)
 
 Every claurke STATUS.md bloats - the dated session summaries pile up until the file is mostly history and the next-move gets buried. Keep STATUS lean so the top of the file is always the live state.
 
-**Rule:** after adding this session's entry (Step 5), keep the **most recent 3-5 session entries** in STATUS.md. Spill everything older into `STATUS-archive.md` in the same directory.
+**This step is UNCONDITIONAL (JAD-93 §6.1/§6.2 - no interview option, every close).** The prune is mandatory Category-3 maintenance; skipping it is a protocol violation, not a judgment call.
 
-- Move the oldest entries verbatim - cut from STATUS, paste into the archive under the same heading style, newest-archived first. Don't summarize or drop content; the archive is the full record.
+**Rule:** after adding this session's entry (Step 5), keep the **most recent 3 session entries** in STATUS.md. Spill everything older into `STATUS-archive.md` in the same directory.
+
+- Move the oldest entries verbatim - cut from STATUS, paste into the archive under the same heading style, newest-archived first. Don't summarize or drop content; the archive is the full record. If the project shards its archive (~40KB per shard), append to the CURRENT shard only.
 - If `STATUS-archive.md` doesn't exist, create it with a one-line header (`# STATUS Archive - [project] (older session entries, newest first)`) and a pointer back: note in STATUS that older sessions live in `STATUS-archive.md`.
 - Update the `Last updated:` line at the top of STATUS to this session's date.
+- **Chain-line cap:** the `Last updated:` headline is ≤2 lines and carries NO "Prior:" chain - delete any chain found, don't maintain it (git history + the archive own the past). Same cap applies to the headlines of any other memory file touched this close.
+- **Size-tripwire report:** check word counts against the project's declared budgets (defaults: CLAUDE >2,500w / STATUS >2,500w post-first-prune / MEMORY >4,500w). Any file over budget → surface the prune candidate in the close report (Step 8).
+- **Brief Status-line flips:** if a build shipped this session and its brief carries a `Status:` line (DRAFT / ACTIVE / EXECUTED / SUPERSEDED), flip it - the merge/deploy receipt is the verifiable event.
 - Only prune the session-history chain. Leave standing sections (next move, current state, pending, reference tables) in place - they're not history.
 - If the project's CLAUDE.md sets a different STATUS retention rule or a different archive filename, follow it - project overrides win.
 
-This is mechanical maintenance (Category 3): report the prune in the confirmation output (how many entries moved, to where).
+This is mechanical maintenance (Category 3): report the prune in the confirmation output (how many entries moved, to where), plus the tripwire results and any Status-line flips.
 
 ## Step 7: PRIMER.md refresh (conditional)
 
@@ -128,18 +141,36 @@ Then **always** emit a copy-paste kickoff prompt for the next session - paste-re
 --- Next-session kickoff (copy-paste) ---
 New session on [project name]. Continuing from [date] (Session N).
 
-Reacclimate: read STATUS.md (next move + live state), then CLAUDE.md and MEMORY.md[, PRIMER.md]. In one line: [where we are].
+Reacclimate: read STATUS.md first - its [date] close block is this session's ONE narrative and carries the full context (the kickoff cites it, never restates it). Then CLAUDE.md, and MEMORY.md/PRIMER.md per their triggers.
 
 First move: [the Step 2C answer - the agreed first focus].
 
-Pending, in priority order:
+Pending, in priority order (titles only - details live in the STATUS close block):
 - [item]
 - [item]
-
-Keep in mind: [open threads / decisions still in the air, if any].
 ```
 
 Fill every bracket from this session - don't emit the template with placeholders. Keep the summary short; Clark is trying to leave. If he answered the candidate asks, write the approved ones before the session ends. If he didn't, they're already preserved in STATUS.
+
+## Monthly compaction (rides the first-session-after-the-1st cadence)
+
+Monthly compaction rides the existing Rule-18 model-matrix cadence - the first session after the 1st of each month, ~15 minutes, already a scheduled habit. When that session is a close (or the first close after the 1st), run:
+
+1. **MEMORY tombstone sweep:** move Superseded/Historical rows' full text to `MEMORY-archive.md` (append to the current shard; ~40KB per shard), leaving the 1-line tombstone + pointer in MEMORY.md.
+2. **GOTCHAS.md review:** check the current shard's size (~40KB → new entries start the next shard, `GOTCHAS-2.md` etc.; existing entries NEVER move, so pointers stay valid).
+3. **archive/ sweep:** spent one-shots, dated runbooks, and executed artifacts at the project root move to `archive/`.
+
+Report the compaction in the confirmation output. Skip silently in projects without these files.
+
+## The session-independent actuator (context, not a close step)
+
+Budget enforcement does NOT depend on this skill running (JAD-93 §6.2 - session-close is Cowork-only by design, so the actuator lives outside it). Three mechanisms fire whether or not any session closes:
+
+1. **`daily-backup.sh` refuses green.** The nightly launchd job computes memory-file word counts per backed-up repo; on any blown T0/T1/T2 budget it writes/updates a tracked `MEMORY-WARNINGS.md` at repo root and changes its commit subject to `Daily auto-backup: <date> [BUDGET BLOWN: <file> <n>w/<budget>w]`. The script deletes the warning file once budgets pass - deletion is the receipt.
+2. **The warning file drafts the NEXT session, any surface.** File Map v2's standing rule: if `MEMORY-WARNINGS.md` exists at session start, the prune runs before any other work - Code or Cowork, worker or planning session.
+3. **The weekly memory-audit files Linear tickets itself, at audit time.** Audits score against the JAD-93 §4.3 taxonomy budgets; corrective items become JAD tickets in the same audit run (or are explicitly waived in the audit output), never deferred to a hypothetical next close.
+
+What this means for THIS skill: if `MEMORY-WARNINGS.md` exists when the close starts, the Step 6 prune targets those files first, and the close report notes whether the warning cleared.
 
 ## Voice
 
@@ -150,7 +181,8 @@ Any prose drafted during this close (session summaries, gotcha text, PRIMER narr
 - Don't create HTML artifacts or session logs - that's daily-wrap, a different skill
 - Don't interrogate Clark in prose - scan the conversation yourself, then put the decisions in an AskUserQuestion interview with your recommendation in every option
 - Don't emit the kickoff prompt with unfilled placeholders - fill every bracket from this session, or omit the line
-- Don't update files that weren't touched by this session's work - Steps 5 and 6 are conditional, not mandatory
+- Don't update files that weren't touched by this session's work - but Step 6's prune + tripwire check is unconditional at every close (JAD-93); only its brief-flip and compaction pieces are event-gated
+- Don't write a contradicting entry without tombstoning the one it supersedes - supersession-at-write, same write, pointer at the current chain head
 - Don't rewrite MEMORY.md wholesale - append or edit specific entries only
 - Don't write to MEMORY.md without sorting the write into a category first - uncertain means Category 1
 - Don't add Linear, git, PR, or deploy steps here - this skill is generic; those live in `session-close-wherehouse`
