@@ -52,6 +52,14 @@ backup_repo() {
   local path="$2"
   local pull_first="$3"
   cd "$path" 2>/dev/null || { echo "$name: path not found at $path" >> "$LOG"; return; }
+  # This script commits on the current branch and pushes main; anything else checked
+  # out means a backup would land on (or push from) the wrong ref. Skip, don't guess.
+  local branch
+  branch="$(git symbolic-ref --short HEAD 2>/dev/null)"
+  if [[ "$branch" != "main" ]]; then
+    echo "$name: on '${branch:-detached HEAD}', not main — skipped" >> "$LOG"
+    return
+  fi
   # Single-writer repos (Helmut writes server-side): pull its commits before adding
   # local hand-edits, so laptop and origin never drift. ff-only: on real divergence,
   # skip the backup rather than commit on top and make it worse.
@@ -93,8 +101,14 @@ backup_repo() {
     echo "$name: budgets pass — MEMORY-WARNINGS.md cleared" >> "$LOG"
   fi
   if [[ -n $(git status --porcelain) ]]; then
-    git add -A
-    git commit -m "$subject" >> "$LOG" 2>&1
+    if ! git add -A >> "$LOG" 2>&1; then
+      echo "$name: git add FAILED — not pushed" >> "$LOG"
+      return
+    fi
+    if ! git commit -m "$subject" >> "$LOG" 2>&1; then
+      echo "$name: git commit FAILED — not pushed" >> "$LOG"
+      return
+    fi
     git push origin main >> "$LOG" 2>&1 && echo "$name: pushed" >> "$LOG" || echo "$name: push FAILED" >> "$LOG"
   else
     echo "$name: no changes" >> "$LOG"

@@ -141,15 +141,13 @@ Then **always** emit a copy-paste kickoff prompt for the next session - paste-re
 --- Next-session kickoff (copy-paste) ---
 New session on [project name]. Continuing from [date] (Session N).
 
-Reacclimate: read STATUS.md (next move + live state), then CLAUDE.md and MEMORY.md[, PRIMER.md]. In one line: [where we are].
+Reacclimate: read STATUS.md first - its [date] close block is this session's ONE narrative and carries the full context (the kickoff cites it, never restates it). Then CLAUDE.md, and MEMORY.md/PRIMER.md per their triggers.
 
 First move: [the Step 2C answer - the agreed first focus].
 
-Pending, in priority order:
+Pending, in priority order (titles only - details live in the STATUS close block):
 - [item]
 - [item]
-
-Keep in mind: [open threads / decisions still in the air, if any].
 ```
 
 Fill every bracket from this session - don't emit the template with placeholders. Keep the summary short; Clark is trying to leave. If he answered the candidate asks, write the approved ones before the session ends. If he didn't, they're already preserved in STATUS.
@@ -170,7 +168,7 @@ Budget enforcement does NOT depend on this skill running (JAD-93 §6.2 - session
 
 1. **`daily-backup.sh` refuses green.** The nightly launchd job computes memory-file word counts per backed-up repo; on any blown T0/T1/T2 budget it writes/updates a tracked `MEMORY-WARNINGS.md` at repo root and changes its commit subject to `Daily auto-backup: <date> [BUDGET BLOWN: <file> <n>w/<budget>w]`. The script deletes the warning file once budgets pass - deletion is the receipt.
 2. **The warning file drafts the NEXT session, any surface.** File Map v2's standing rule: if `MEMORY-WARNINGS.md` exists at session start, the prune runs before any other work - Code or Cowork, worker or planning session.
-3. **The weekly memory-audit files Linear tickets itself, at audit time.** Corrective items become JAD tickets in the same audit run (or are explicitly waived in the audit output), never deferred to a hypothetical next close.
+3. **The weekly memory-audit files Linear tickets itself, at audit time.** Audits score against the JAD-93 §4.3 taxonomy budgets; corrective items become JAD tickets in the same audit run (or are explicitly waived in the audit output), never deferred to a hypothetical next close.
 
 What this means for THIS skill: if `MEMORY-WARNINGS.md` exists when the close starts, the Step 6 prune targets those files first, and the close report notes whether the warning cleared.
 
