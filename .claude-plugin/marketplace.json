@@ -6,7 +6,7 @@
   },
   "metadata": {
     "description": "Helper skills for the claurke system. claurke-onboarding walks new users through fresh install. claurke-ops surfaces operational knowledge after install (troubleshooting, layering model, decision log, etc.) and ships session-close, the universal session-close protocol for any claurke project without a dedicated close skill; session-close-wherehouse, its dev variant that adds Linear/git close gates; linear-ops, standalone Linear board management for JAD-tracked dev work; plus spec-shard-with-contracts, which shards a locked plan into resumable spec docs carrying explicit inter-shard contracts. Install onboarding first; install ops once you have the system running.",
-    "version": "1.4.0"
+    "version": "1.4.1"
   },
   "plugins": [
     {
