@@ -14,7 +14,7 @@ The same decoupling as `session-close-wayfinder`: generic stays generic, project
 
 ## Step 1: Run the universal close layer
 
-Execute the generic `session-close` protocol in full - every step *except* its final confirmation-and-kickoff output: orient on the project, scan the conversation, run the AskUserQuestion close interview (memory + gotcha approval with recommendations inline, next-session ordering, open decisions), apply the three-category MEMORY writes, write approved gotchas, update and prune STATUS into STATUS-archive.md, refresh PRIMER if load-bearing facts changed.
+Execute the generic `session-close` protocol in full - every step *except* its final confirmation-and-kickoff output: orient on the project, scan the conversation, run the AskUserQuestion close interview (memory + gotcha approval with recommendations inline, next-session ordering, open decisions), apply the three-category MEMORY writes (including supersession-at-write: a contradicting entry tombstones the one it replaces in the same write, pointer at the current chain head), write approved gotchas as the one-liner + GOTCHAS.md narrative pair with the mandatory "does this supersede an existing entry? which?" question, update and prune STATUS into STATUS-archive.md (the prune is UNCONDITIONAL - ≤3 blocks, 2-line headline cap, size-tripwire report; JAD-93 §6.2), refresh PRIMER if load-bearing facts changed. The generic skill also carries the monthly-compaction ride (first session after the 1st: MEMORY tombstone sweep → MEMORY-archive.md, GOTCHAS review, archive/ sweep) and the session-independent actuator contract (`MEMORY-WARNINGS.md` from daily-backup.sh → prune first) - both apply in full here; The Wherehouse is the primary instance.
 
 Read `~/.claude/claurke-kit/skills/session-close/SKILL.md` (or the installed `session-close` skill) and follow it - do not re-implement or duplicate that logic here; when it changes, this variant inherits the change for free.
 
@@ -99,6 +99,8 @@ Then the paste-ready kickoff prompt (generic template), with the loose ends and 
 ## What NOT to do
 
 - Don't re-implement the universal close - delegate to `session-close`; this skill only adds dev gates.
+- Don't skip the Step-1 prune or tripwire report - the universal Step 6 is unconditional at every close (JAD-93), dev sessions included.
+- Wherehouse-specific: the weekly memory-audit files its corrective JAD tickets at audit time (actuator mechanism 3) - never park an audit finding in the close report instead of Linear.
 - Don't deploy or merge during the close - the loose-ends sweep observes and records; Clark acts.
 - Don't mutate the Linear board without Clark's approval of the itemized change set.
 - Don't skip surfacing a loose end into the kickoff prompt - an unrecorded open PR is the exact failure this variant exists to prevent.
