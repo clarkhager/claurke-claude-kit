@@ -51,10 +51,8 @@ Discovery is authoritative - run it, never trust a cached id.
 
 ```bash
 # Repo IDs: `repo list`, NOT `worktree ps` (ps shows names/paths, never ids).
-# Shape verified against a live run, 2026-07-13:
-#   {"result":{"repos":[{"id","displayName","path",...}]}}
-orca repo list --json \
-  | python3 -c "import sys,json;[print(r['id'], r['displayName']) for r in json.load(sys.stdin)['result']['repos']]"
+# Read the ids off the output; don't hardcode a JSON path that may change under you.
+orca repo list
 
 # --issue takes a GitHub issue NUMBER. Linear issues need --linear-issue.
 # --setup skip is right for plan-only lanes (no deps to install).
@@ -72,15 +70,6 @@ orca terminal read --terminal <handle> --limit 25 --json
 ```
 
 **A `\` must be the LAST character on its line.** A trailing comment after the backslash silently kills the continuation and the next flag runs as its own command.
-
-**Repo IDs are host-local cache, NOT canon.** They change on re-registration. Below is a convenience snapshot for M1 as of 2026-07-13; if `repo list` disagrees, `repo list` wins.
-
-| repo | id (M1, 2026-07-13) |
-|---|---|
-| The Wherehouse | `81d683f7-0187-4b43-8c5a-e20841bb3a81` |
-| helmut-retrieval | `2841b3e0-6f15-4da1-9f4d-3f7af4d21f98` |
-| helmut-review | `791677c2-5386-41fb-b656-8f4af82cfaa7` |
-| actually-companion | `7cd4cb58-ee5b-4b3a-ae28-290d50fc1032` |
 
 **Reading a lane:** `orca terminal read` on a live TUI can return empty or stale text (known gotcha). The reliable signal that a plan-mode lane finished is **the artifact on disk** - `ls -la <worktree>/PLAN.md` - not the terminal preview.
 
@@ -109,11 +98,6 @@ orca worktree ps --limit 50 --json
 gh pr list --repo clarkhager/<repo> --head <branch> --state all --json number,state
 #   (b) the worktree is clean - there is nothing to destroy
 git -C <worktree-path> status --porcelain=v1 --untracked-files=all
-
-# Ancestry cross-check for non-squash repos. Resolve the DEFAULT branch; never assume main:
-git -C <repo> fetch -q origin
-DEF=$(git -C <repo> symbolic-ref --short refs/remotes/origin/HEAD | sed 's|^origin/||')
-git -C <repo> merge-base --is-ancestor HEAD "origin/$DEF"
 
 # Only then:
 orca worktree rm --worktree path:<path> --force
