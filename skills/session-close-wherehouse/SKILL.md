@@ -42,6 +42,46 @@ Surface every loose end as a **pending item in STATUS and in the kickoff prompt*
 
 Don't deploy or merge anything as part of the close - the sweep observes and records; Clark decides when to act. (Follow the project's infra rules: observe before prescribing, deploy from a clean worktree off origin/main, never `git checkout main` in a dirty tree.)
 
+**Orca worktree sweep (part of gate B).** If any Orca lane ran this session - or `orca worktree ps` shows worktrees at all - sweep them. Dead lanes accumulate until the projects window hides the live ones (~22 cleared at once on 2026-07-13; five more were still open the same day the archive-at-merge practice landed - a practice with no trigger does not fire).
+
+**Do not use `git branch --merged` as the merge test.** We squash-merge: a merged branch's tip never enters main's history, so that check returns `false` for genuinely-merged branches (it did, for all three, on 2026-07-13). **PR state is the authority.**
+
+```bash
+orca worktree ps --limit 50 --json
+# BOTH must hold before a worktree is a candidate:
+gh pr list --repo clarkhager/<repo> --head <branch> --state all --json number,state   # merged?
+git -C <worktree-path> status --porcelain=v1 --untracked-files=all                    # clean?
+# candidate = MERGED and CLEAN.  Then: orca worktree rm --worktree path:<path> --force
+```
+
+**A worktree that is not clean is EXCLUDED from removal** and itemized separately with its `status --porcelain` output shown verbatim - `--force` destroys uncommitted and untracked files. (On 2026-07-13 this is what saved `op_mcp.py`, the OpenPencil driver from MEMORY #102, sitting untracked in a worktree with no PR.) **A worktree with no PR is never a candidate.** Itemize candidates and get Clark's approval before removing any - a final action under the global review gate. See `orca-ops` > "Closing a lane (archive at merge)".
+
+## Step 3b: Skill retro gate (dev gate C)
+
+**Run whenever an Orca lane ran, or whenever a documented skill was used and found wanting.** Skills rot silently: the failure mode is a skill that names the wrong tool, ships a wrong CLI flag, or states a practice with nothing to trigger it - and nobody notices for weeks, because nothing ever asks.
+
+**This gate produces a receipt every single time it fires, including when it finds nothing.** That is the whole design. The version of this gate that only said "ask three questions" was itself an aspiration with no artifact - an agent could skip it with no observable failure, which is precisely the defect it exists to catch. A gate you can silently no-op is not a gate.
+
+Ask, and answer honestly:
+
+1. **Was anything the skill documents actually WRONG?** A command, a flag, a path, a tool name, a claim about what a tool can do. **Corrections outrank additions** - a wrong instruction is worse than a missing one, because it gets followed.
+2. **Did we derive a rule that isn't written down?** Something a future session would have to re-derive from scratch.
+3. **Did a documented practice fail to fire because nothing triggered it?** Then the fix is a **gate**, not better wording. Restating an aspiration more emphatically does not make it fire.
+
+**MANDATORY RECEIPT — emit this line in STATUS and in the close confirmation, every time the gate fires:**
+
+```
+Retro(<skill>): commands=<n|none> rules=<n|none> missing-triggers=<n|none>
+```
+
+An all-`none` receipt is a valid, expected result and must still be emitted. **A close that ran a lane and shows no `Retro(...)` line failed this gate** - that absence is the observable failure, and it is checkable on sight.
+
+For each positive finding, record: the **evidence** (what in this session proves it), the **target** (file + section), and the **disposition** (`approved` / `rejected` / `deferred`). Findings surface as **candidates for Clark's approval - never a silent overwrite**, same shape as the memory write protocol.
+
+Approved candidates become a **PR to `claurke-claude-kit`** (canonical home for kit skills). An edit to Cowork's skill cache is invisible and dies with the session - the cache is read-only and reloads at session start. After merge: `bash ~/.claude/claurke-kit/bootstrap.sh --update`, plus a plugin **Update** in Cowork for bundled kit skills to refresh.
+
+Log accepted amendments in the skill's **Amendment log** - **most recent 3 only.** Git holds the full history; an unbounded log is just rot with a date on it.
+
 ## Step 4: Build-log capture (Wherehouse only)
 
 **Gate:** run this step ONLY when Step 1's CLAUDE.md is The Wherehouse meta-project (or another project whose CLAUDE.md declares a `build-log/` knowledge root and points at the `helmut-buildlog` tool). Skip silently in every other dev project. This is the self-documenting development memory: a synthesized, bounded build-log entry per dev session plus a secret-scrubbed cold archive.
