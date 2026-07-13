@@ -42,6 +42,32 @@ Surface every loose end as a **pending item in STATUS and in the kickoff prompt*
 
 Don't deploy or merge anything as part of the close - the sweep observes and records; Clark decides when to act. (Follow the project's infra rules: observe before prescribing, deploy from a clean worktree off origin/main, never `git checkout main` in a dirty tree.)
 
+**Orca worktree sweep (part of gate B).** If any Orca lane ran this session - or if `orca worktree ps` shows worktrees at all - sweep them the same way. A worktree whose branch is already merged to `origin/main` is dead weight, and dead lanes accumulate until the projects window hides the live ones (~22 had to be cleared at once on 2026-07-13; five more were still open the same day the archive-at-merge practice landed - a practice with no trigger does not fire).
+
+```bash
+orca worktree ps --limit 50
+# per worktree: git -C <repo> branch -r --merged origin/main | grep <branch>  -> merged = candidate
+# archive:      orca worktree rm --worktree path:<path> --force
+```
+
+**Itemize the candidates and get Clark's approval before removing any** - `--force` destroys uncommitted work that never became a PR, so this is a final action under the global review gate. The sweep proposes; Clark disposes. See `orca-ops` > "Closing a lane (archive at merge)".
+
+## Step 3b: Skill retro gate (dev gate C)
+
+**Run this whenever an Orca lane ran, or whenever a documented skill was used and found wanting.** Skills rot silently: the failure mode is a skill that names the wrong tool, ships a wrong CLI flag, or states a practice with nothing to trigger it - and nobody notices for weeks because nothing ever asks.
+
+Ask three questions, cheap to answer, and answer them honestly:
+
+1. **Was anything the skill documents actually WRONG?** A command, a flag, a path, a tool name, a claim about what a tool can do. Corrections outrank additions - a wrong instruction is worse than a missing one, because it gets followed.
+2. **Did we derive a rule that isn't written down?** Something a future session would have to re-derive from scratch.
+3. **Did a documented practice fail to fire because nothing triggered it?** If so the fix is a gate, not better wording. Rewriting an aspiration more emphatically does not make it fire.
+
+**Surface amendments as CANDIDATES for Clark's approval - never a silent overwrite.** Same shape as the memory write protocol: state the claim, state where in the session it came from, ask. This is the mechanism that makes "living skill" true instead of aspirational.
+
+Approved candidates become a **PR to `claurke-claude-kit`** (the canonical home for kit skills). An edit to Cowork's skill cache is invisible and dies with the session - the cache is read-only and reloads at session start. After merge: `bash ~/.claude/claurke-kit/bootstrap.sh --update`, plus a plugin **Update** in Cowork for bundled kit skills to refresh.
+
+Record each accepted amendment in that skill's own **Amendment log** section, dated, naming the defect it fixes. The log is what lets a future session see whether the skill has been earning its keep or quietly rotting.
+
 ## Step 4: Build-log capture (Wherehouse only)
 
 **Gate:** run this step ONLY when Step 1's CLAUDE.md is The Wherehouse meta-project (or another project whose CLAUDE.md declares a `build-log/` knowledge root and points at the `helmut-buildlog` tool). Skip silently in every other dev project. This is the self-documenting development memory: a synthesized, bounded build-log entry per dev session plus a secret-scrubbed cold archive.
