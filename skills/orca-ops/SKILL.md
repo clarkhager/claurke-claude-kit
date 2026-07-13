@@ -12,7 +12,7 @@ This is how *we* use Orca, layered on top of the product. For raw Orca mechanics
 - **One worktree per lane.** Each agent runs in its own isolated git worktree off the repo, so parallel lanes cannot collide on files. Worktrees live under `~/orca/workspaces`, nested by repo name.
 - **Division of labor.** Fable/Claude scopes a layer into a build-ready plan; sol-prep splits a plan into conflict-free build lanes and runs them; Codex reviews BLOCKING on each; Cowork holds the meta-plan and the canon-write gates. sol-prep is a conflict-splitter and executor, never the designer - scoping is Fable/Opus work.
 - **Pilot before marathon.** Validate the tool on one contained lane before betting a multi-lane run on it. Discovering an Orca quirk on a $0 single lane beats finding it mid-marathon.
-- **Lanes are split by FILE, not by ticket.** Two Linear issues that touch the same file are ONE lane, however cleanly they divide as tickets. Worktree isolation prevents lanes from corrupting each other; it does not merge their edits for you - two lanes editing `release.yml` produce two branches that conflict at PR time and silently drop half the work. Before firing N lanes, list the files each will touch and check for overlap. Overlap -> collapse into one lane, sequence the work inside it. (Learned 2026-07-13: JAD-97 and JAD-98's macOS half both edited `release.yml`; firing them in parallel would have been a conflict.)
+- **Lanes are split by FILE, not by ticket.** Worktree isolation stops lanes from corrupting each other; it does **not** merge their edits. Two lanes editing `release.yml` produce two branches that conflict at PR time, and the resolution silently drops half the work if nobody owns it. The rule: **no two concurrent lanes may edit the same file without a named reconciliation owner and a stated merge order.** Before firing N lanes, list the files each will touch and check for overlap. Overlap -> collapse into one lane and sequence the work inside it (the default, always safe), or keep them separate only with that owner named. (2026-07-13: JAD-97 and JAD-98's macOS half both edited `release.yml`; firing them in parallel would have conflicted.)
 
 ## Who drives Orca (the three cockpits)
 
@@ -47,30 +47,40 @@ Create a lane from a Linear issue so the branch names itself and the issue attac
 
 **CLI (what Cowork uses; `orca` is at `/usr/local/bin/orca`):**
 
+Discovery is authoritative - run it, never trust a cached id.
+
 ```bash
-# Repo IDs - `repo list`, NOT `worktree ps` (ps shows names/paths, not ids)
-orca repo list --json | python3 -c "import sys,json;[print(r['id'],r['displayName']) for r in json.load(sys.stdin)['result']['repos']]"
+# Repo IDs: `repo list`, NOT `worktree ps` (ps shows names/paths, never ids).
+# Shape verified against a live run, 2026-07-13:
+#   {"result":{"repos":[{"id","displayName","path",...}]}}
+orca repo list --json \
+  | python3 -c "import sys,json;[print(r['id'], r['displayName']) for r in json.load(sys.stdin)['result']['repos']]"
 
+# --issue takes a GitHub issue NUMBER. Linear issues need --linear-issue.
+# --setup skip is right for plan-only lanes (no deps to install).
 orca worktree create \
-  --repo id:<repoId> --name <lane-name> \
-  --linear-issue JAD-XX \        # NOT --issue: that takes a GitHub issue NUMBER
-  --agent claude --setup skip \  # --setup skip for plan-only lanes (no deps needed)
-  --prompt '<the full lane brief>' --json
+  --repo id:<repoId> \
+  --name <lane-name> \
+  --linear-issue JAD-XX \
+  --agent claude \
+  --setup skip \
+  --prompt '<the full lane brief>' \
+  --json
 
-orca terminal list --worktree path:<worktree-path> --json   # get the handle
+orca terminal list --worktree path:<worktree-path> --json
 orca terminal read --terminal <handle> --limit 25 --json
 ```
 
-**Registered repo IDs** (stable; re-derive only if `repo list` disagrees):
+**A `\` must be the LAST character on its line.** A trailing comment after the backslash silently kills the continuation and the next flag runs as its own command.
 
-| repo | id |
+**Repo IDs are host-local cache, NOT canon.** They change on re-registration. Below is a convenience snapshot for M1 as of 2026-07-13; if `repo list` disagrees, `repo list` wins.
+
+| repo | id (M1, 2026-07-13) |
 |---|---|
 | The Wherehouse | `81d683f7-0187-4b43-8c5a-e20841bb3a81` |
 | helmut-retrieval | `2841b3e0-6f15-4da1-9f4d-3f7af4d21f98` |
 | helmut-review | `791677c2-5386-41fb-b656-8f4af82cfaa7` |
 | actually-companion | `7cd4cb58-ee5b-4b3a-ae28-290d50fc1032` |
-
-**`--issue` vs `--linear-issue` is a real trap:** `--issue` takes a GitHub issue *number*. Passing `JAD-97` to it does not error usefully. Linear issues need `--linear-issue`.
 
 **Reading a lane:** `orca terminal read` on a live TUI can return empty or stale text (known gotcha). The reliable signal that a plan-mode lane finished is **the artifact on disk** - `ls -la <worktree>/PLAN.md` - not the terminal preview.
 
@@ -82,18 +92,40 @@ The Orchestration skill is installed on all three agents. A coordinator agent ca
 
 ## Closing a lane (archive at merge)
 
-A lane's job ends when its PR merges (or its work otherwise lands) - archive the worktree as the last step of that merge: `orca worktree rm --worktree path:<worktree-path> --force` (works in any repo; `--force` handles live terminals and a not-fully-merged local branch, which is safe once the PR is on main). Skip it and merged lanes pile up until the projects window is dozens of dead worktrees hiding the few live ones - a real prune had to clear ~22 at once on 2026-07-13. Treat archive-at-merge like deleting a merged branch: automatic, part of finishing, not a separate cleanup you'll do "later."
+A lane's job ends when its PR merges (or its work otherwise lands) - archive the worktree as the last step of that merge, **after confirming the worktree is clean**: `git -C <path> status --porcelain=v1 --untracked-files=all` must come back empty, and only THEN `orca worktree rm --worktree path:<path> --force`. `--force` handles live terminals and a not-fully-merged local branch (safe once the PR is on main), but it **also destroys uncommitted and untracked files** - so the clean check is a precondition, not a formality. Skip it and merged lanes pile up until the projects window is dozens of dead worktrees hiding the few live ones - a real prune had to clear ~22 at once on 2026-07-13. Treat archive-at-merge like deleting a merged branch: automatic, part of finishing, not a separate cleanup you'll do "later."
 
-**Archive-at-merge is a practice; the SWEEP is what enforces it.** A practice with no trigger is an aspiration - it decays silently, which is exactly how ~22 dead worktrees accumulated. The sweep is a real step, wired into `session-close-wherehouse` Step 3 (git loose-ends), and runnable any time:
+**Archive-at-merge is a practice; the SWEEP is what enforces it.** A practice with no trigger is an aspiration - it decays silently, which is how ~22 dead worktrees accumulated, and why five more were still open the very day PR #7 landed the practice. The sweep is a real step, wired into `session-close-wherehouse` Step 3, runnable any time.
+
+**Two things will burn you. Both did, on 2026-07-13:**
+
+1. **`git branch -r --merged origin/main | grep <branch>` IS NOT A MERGE TEST.** We squash-merge, so a merged branch's tip never enters main's history - this check returned `false` for all three genuinely-merged branches. It also reads stale remote refs, substring-matches unrelated branches via `grep`, and assumes `main` is the default branch. **The PR state is the authority.**
+2. **A worktree can hold work that was never committed.** `task-tinder-v2-openpencil` had NO PR and four untracked paths - including `op_mcp.py`, the OpenPencil driver recorded in MEMORY #102. `--force` would have destroyed it.
 
 ```bash
-# Every Orca worktree whose branch is already merged to origin/main = archive candidate
-orca worktree ps --limit 50
-# For each: is its branch merged?  git -C <repo> branch -r --merged origin/main | grep <branch>
-# Merged -> orca worktree rm --worktree path:<path> --force
+orca worktree ps --limit 50 --json
+
+# BOTH must hold before a worktree is even a candidate:
+#   (a) its PR actually merged - PR state is the authority, not git ancestry
+gh pr list --repo clarkhager/<repo> --head <branch> --state all --json number,state
+#   (b) the worktree is clean - there is nothing to destroy
+git -C <worktree-path> status --porcelain=v1 --untracked-files=all
+
+# Ancestry cross-check for non-squash repos. Resolve the DEFAULT branch; never assume main:
+git -C <repo> fetch -q origin
+DEF=$(git -C <repo> symbolic-ref --short refs/remotes/origin/HEAD | sed 's|^origin/||')
+git -C <repo> merge-base --is-ancestor HEAD "origin/$DEF"
+
+# Only then:
+orca worktree rm --worktree path:<path> --force
 ```
 
-**Present the itemized candidate list to Clark and get approval before removing any.** A worktree may hold uncommitted work that never became a PR - `worktree rm --force` destroys it. This is a final action under the global review gate; the sweep *proposes*, Clark disposes. (2026-07-13: five merged worktrees were still open at the moment PR #7 landed the archive-at-merge practice - the practice cannot enforce itself.)
+**Classification is not optional:**
+
+- **PR merged AND worktree clean** -> archive candidate.
+- **Worktree NOT clean** -> **excluded from removal.** Itemize it separately and show Clark the `status --porcelain` output verbatim. Never fold a dirty worktree into a bulk approval.
+- **No PR at all** -> not a candidate, however old it looks. It may be the only copy of something.
+
+**Present the itemized candidates and get Clark's approval before removing any.** Final action under the global review gate: the sweep *proposes*, Clark disposes.
 
 ## Our settings (decided 2026-07-09, with the why)
 
@@ -133,12 +165,22 @@ Claude and Codex are authed on clarkhager@gmail.com under Settings → AI Provid
 
 The mechanism, not the aspiration:
 
-**Trigger.** `session-close-wherehouse` asks, every close where an Orca lane ran: *did this session falsify or extend orca-ops?* Three prompts, cheap to answer:
-1. Did any documented command, flag, path, or tool name turn out to be **wrong**? (-> correction, highest priority)
+**Trigger.** `session-close-wherehouse` Step 3b, at every close where an Orca lane ran. Three questions:
+1. Did any documented command, flag, path, or tool name turn out to be **wrong**? (-> correction; outranks everything else, because a wrong instruction gets followed)
 2. Did we derive a rule that isn't written down? (-> new convention)
 3. Did a practice fail to fire because nothing triggered it? (-> it needs a gate, not better wording)
 
-**Artifact.** Amendments surface as **candidates for Clark's approval** - never a silent overwrite. Same shape as the memory write protocol: state the claim, state where in the session it came from, ask. Approved candidates become a PR to `claurke-claude-kit` (this skill's canonical home since PR #7); rejected ones are dropped.
+**Trigger coverage is currently PARTIAL, and that is a known hole.** `session-close-wherehouse` routes only Wherehouse and Linear/JAD-tracked dev work. Orca used in a project that closes via the generic `session-close` will **not** hit this gate. Until the trigger moves into the universal close layer, any session that fires an Orca lane outside JAD-tracked work must run the retro by hand.
+
+**Artifact - a receipt, every time, including when nothing is found:**
+
+```
+Retro(orca-ops): commands=<n|none> rules=<n|none> missing-triggers=<n|none>
+```
+
+An all-`none` receipt is expected and must still be emitted. **A close that ran a lane and shows no `Retro(...)` line failed the gate** - the absence is the observable failure. A gate that can be silently no-opped is not a gate; that was the defect in the version this replaces.
+
+Positive findings carry **evidence** (what in the session proves it), **target** (file + section), and **disposition** (`approved`/`rejected`/`deferred`). They surface as **candidates for Clark's approval** - never a silent overwrite, same shape as the memory write protocol. Approved ones become a PR to `claurke-claude-kit` (this skill's canonical home since PR #7).
 
 **Why a PR and not a cache edit.** Cowork's skill cache is read-only and reloads at session start, so an in-session edit is invisible and dies with the session. The kit repo is the only durable home. After merge: `bash ~/.claude/claurke-kit/bootstrap.sh --update`, and the plugin needs an **Update** in Cowork for bundled kit skills to refresh (existing gotcha).
 
@@ -146,7 +188,9 @@ Keep it to our conventions plus pointers. Do not let it grow into a mirror of on
 
 ### Amendment log
 
-- **2026-07-13 (iteration 1)** - four defects found in one session: (a) the skill named **computer-use** as the bridge to M1 when the real bridge is **Desktop Commander**, which caused a Code kickoff prompt to be handed to Clark for lanes Cowork could fire itself; (b) `--issue <JAD-XX>` is **wrong** - Linear needs `--linear-issue`; (c) repo IDs were undocumented and had to be rediscovered; (d) archive-at-merge had no trigger, so five merged worktrees sat open. Added: the three-cockpits driver model, the Orca-lane kickoff variant, the lane-conflict-by-file rule, the worktree sweep, and this retro gate.
+Most recent 3 only. Git holds the rest; an unbounded log is rot with a date on it.
+
+- **2026-07-13 (iteration 1)** - four defects found in one session: (a) the skill named **computer-use** as the bridge to M1 when the real bridge is **Desktop Commander**, which caused a Code kickoff prompt to be handed to Clark for lanes Cowork could fire itself; (b) `--issue <JAD-XX>` is **wrong** - Linear needs `--linear-issue`; (c) repo IDs were undocumented and had to be rediscovered; (d) archive-at-merge had no trigger, so five merged worktrees sat open. Added: the three-cockpits driver model, the Orca-lane kickoff variant, the lane-conflict rule, the worktree sweep, and this retro gate. **Codex review (BLOCKING) then found 4 HIGH defects in the fix itself** - two of which this same session had already proven: the documented merge test (`branch --merged`) is the one that FAILED on our squash-merges, and the sweep never checked for uncommitted work despite a dirty-check being what saved `op_mcp.py`. Also: the example command was invalid shell (backslash-then-comment), and the retro gate had no mandatory artifact - reproducing the exact failure it claims to fix. All folded.
 
 ## Mechanics beyond our conventions
 
