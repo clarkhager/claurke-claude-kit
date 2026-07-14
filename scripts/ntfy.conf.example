@@ -1,0 +1,13 @@
+# ntfy.conf — per-machine push-notification config for claurke scheduled jobs.
+# Copied to ~/.claude/ntfy.conf by bootstrap.sh ONLY if that file doesn't exist.
+# Never committed. Never clobbered.
+#
+# Subscribe on your phone: install the ntfy app, add the topic below.
+# Anyone who knows a public ntfy.sh topic name can read AND publish to it, which
+# is why the topic is a long random string rather than something guessable like
+# "clark-backups". Messages here are repo names and pass/fail, nothing sensitive.
+# Want it locked down? Reserve the topic on an ntfy.sh account and set NTFY_TOKEN.
+
+NTFY_SERVER=https://ntfy.sh
+NTFY_TOPIC=REPLACE-ME-WITH-A-RANDOM-TOPIC
+NTFY_TOKEN=

@@ -13,7 +13,22 @@
 
 CONF="${BACKUP_REPOS_CONF:-$HOME/.claude/backup-repos.conf}"
 LOG=~/.claude/logs/daily-backup-$(date +%Y%m%d).log
+HEARTBEAT=~/.claude/logs/.daily-backup-heartbeat
 mkdir -p ~/.claude/logs
+
+# Push notifications (ntfy). Sourced, not required: if notify.sh is missing the
+# backup still runs — it just runs silent, exactly as it did before this existed.
+# shellcheck source=/dev/null
+source "$HOME/.claude/scripts/notify.sh" 2>/dev/null || notify_send() { :; }
+export NOTIFY_LOG="$LOG"
+
+# Failure accounting. Every path that leaves a repo un-backed-up appends here, and
+# the tail of the script turns a non-empty list into one push notification. This is
+# the fix for the failure that motivated the whole thing: on 2026-07-11..14 two repos
+# died on a stale index.lock, the script logged it faithfully, and nobody read the log.
+# Logging a failure is not reporting a failure.
+FAILURES=()
+BUDGETS=()
 
 # Trim leading/trailing whitespace without collapsing internal spaces
 # (repo paths contain spaces, e.g. "Under the Boardwalk").
@@ -51,13 +66,18 @@ backup_repo() {
   local name="$1"
   local path="$2"
   local pull_first="$3"
-  cd "$path" 2>/dev/null || { echo "$name: path not found at $path" >> "$LOG"; return; }
+  cd "$path" 2>/dev/null || {
+    echo "$name: path not found at $path" >> "$LOG"
+    FAILURES+=("$name: path not found at $path")
+    return
+  }
   # This script commits on the current branch and pushes main; anything else checked
   # out means a backup would land on (or push from) the wrong ref. Skip, don't guess.
   local branch
   branch="$(git symbolic-ref --short HEAD 2>/dev/null)"
   if [[ "$branch" != "main" ]]; then
     echo "$name: on '${branch:-detached HEAD}', not main — skipped" >> "$LOG"
+    FAILURES+=("$name: on '${branch:-detached HEAD}', not main — skipped")
     return
   fi
   # Single-writer repos (Helmut writes server-side): pull its commits before adding
@@ -68,6 +88,7 @@ backup_repo() {
       echo "$name: pulled (ff-only)" >> "$LOG"
     else
       echo "$name: pull --ff-only FAILED (divergence) — skipped to avoid drift" >> "$LOG"
+      FAILURES+=("$name: pull --ff-only FAILED (divergence) — skipped")
       return
     fi
   fi
@@ -96,6 +117,7 @@ backup_repo() {
     } > MEMORY-WARNINGS.md
     subject="Daily auto-backup: $(date +%Y-%m-%d) [BUDGET BLOWN: $summary]"
     echo "$name: BUDGET BLOWN — $summary" >> "$LOG"
+    BUDGETS+=("$name: $summary")
   elif [[ -f MEMORY-WARNINGS.md ]]; then
     rm -f MEMORY-WARNINGS.md
     echo "$name: budgets pass — MEMORY-WARNINGS.md cleared" >> "$LOG"
@@ -103,13 +125,20 @@ backup_repo() {
   if [[ -n $(git status --porcelain) ]]; then
     if ! git add -A >> "$LOG" 2>&1; then
       echo "$name: git add FAILED — not pushed" >> "$LOG"
+      FAILURES+=("$name: git add FAILED — not pushed")
       return
     fi
     if ! git commit -m "$subject" >> "$LOG" 2>&1; then
       echo "$name: git commit FAILED — not pushed" >> "$LOG"
+      FAILURES+=("$name: git commit FAILED — not pushed")
       return
     fi
-    git push origin main >> "$LOG" 2>&1 && echo "$name: pushed" >> "$LOG" || echo "$name: push FAILED" >> "$LOG"
+    if git push origin main >> "$LOG" 2>&1; then
+      echo "$name: pushed" >> "$LOG"
+    else
+      echo "$name: push FAILED" >> "$LOG"
+      FAILURES+=("$name: push FAILED")
+    fi
   else
     echo "$name: no changes" >> "$LOG"
   fi
@@ -119,6 +148,11 @@ echo "=== Daily backup: $(date) ===" >> "$LOG"
 
 if [[ ! -f "$CONF" ]]; then
   echo "config not found at $CONF — nothing backed up. Copy backup-repos.conf.example to $CONF and edit it." >> "$LOG"
+  # No config means zero repos backed up. That is a failure, not a quiet no-op, and
+  # it is exactly the state a half-finished machine setup leaves you in.
+  notify_send high "Daily backup: NO CONFIG" rotating_light \
+"No repo list at $CONF — nothing was backed up.
+Seed it from scripts/backup-repos.conf.example and edit it."
   echo "=== Done: $(date) ===" >> "$LOG"
   exit 0
 fi
@@ -134,5 +168,36 @@ while IFS= read -r line || [[ -n "$line" ]]; do
   r_path="${r_path/#\~/$HOME}"                  # expand a leading ~
   backup_repo "$r_name" "$r_path" "$r_pull"
 done < "$CONF"
+
+# --- Heartbeat: proof this run completed. ---
+# backup-watchdog.sh reads this at 09:00 and alerts if it's stale. Written here, at
+# the end, on purpose: a run that dies halfway leaves the OLD timestamp in place and
+# correctly trips the watchdog. Writing it at the top would report a corpse as alive.
+printf '%s %s\n' "$(date +%s)" "$(date '+%Y-%m-%d %H:%M:%S %Z')" > "$HEARTBEAT"
+
+# --- One notification per run, only when there's something to say. ---
+# No failures, no blown budgets, no push. Silence means green. This is deliberate:
+# a nightly "all good" ping is a notification you learn to swipe away, and the day it
+# matters you'll swipe that one away too.
+if (( ${#FAILURES[@]} > 0 )); then
+  body="$(printf '%s\n' "${FAILURES[@]}")"
+  if (( ${#BUDGETS[@]} > 0 )); then
+    body="$body
+
+Budgets blown:
+$(printf '%s\n' "${BUDGETS[@]}")"
+  fi
+  notify_send high "Daily backup: ${#FAILURES[@]} repo(s) FAILED" rotating_light,floppy_disk \
+"$body
+
+Log: $LOG"
+elif (( ${#BUDGETS[@]} > 0 )); then
+  notify_send default "Daily backup: budgets blown" warning,memo \
+"All repos backed up. Memory files over budget:
+
+$(printf '%s\n' "${BUDGETS[@]}")
+
+Prune runs before other work next session (MEMORY-WARNINGS.md is committed in-repo)."
+fi
 
 echo "=== Done: $(date) ===" >> "$LOG"

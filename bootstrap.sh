@@ -172,6 +172,10 @@ install_daily_backup() {
   local conf="$CLAUDE_DIR/backup-repos.conf"
   local plist="$HOME/Library/LaunchAgents/com.clarkhager.daily-backup.plist"
   local label="com.clarkhager.daily-backup"
+  local ntfy_conf="$CLAUDE_DIR/ntfy.conf"
+  local watchdog_dest="$scripts_dir/backup-watchdog.sh"
+  local watchdog_plist="$HOME/Library/LaunchAgents/com.clarkhager.backup-watchdog.plist"
+  local watchdog_label="com.clarkhager.backup-watchdog"
 
   if [ ! -f "$src" ]; then
     print_warn "daily-backup.sh not found at $src (kit may be outdated; run git pull)"
@@ -191,6 +195,68 @@ install_daily_backup() {
     print_warn "Seeded placeholder backup list at $conf — EDIT IT, or nothing is backed up."
   else
     print_warn "backup-repos.conf.example missing from kit; no backup list seeded."
+  fi
+
+  # --- Push notifications (ntfy) ---
+  # notify.sh is the shared helper; any scheduled job can source it. The topic lives
+  # in ~/.claude/ntfy.conf, which is per-machine and, like backup-repos.conf, seeded
+  # once and never clobbered — re-running bootstrap must not silently repoint your
+  # alerts at a placeholder topic and leave you thinking you're covered.
+  if [ -f "$SCRIPT_DIR/scripts/notify.sh" ]; then
+    cp "$SCRIPT_DIR/scripts/notify.sh" "$scripts_dir/notify.sh"
+    chmod +x "$scripts_dir/notify.sh"
+    print_ok "notify.sh installed to $scripts_dir/notify.sh"
+  else
+    print_warn "notify.sh missing from kit — scheduled jobs will run without alerts."
+  fi
+
+  if [ -f "$ntfy_conf" ]; then
+    print_ok "ntfy config already present at $ntfy_conf (left untouched)"
+  elif [ -f "$SCRIPT_DIR/scripts/ntfy.conf.example" ]; then
+    cp "$SCRIPT_DIR/scripts/ntfy.conf.example" "$ntfy_conf"
+    print_warn "Seeded placeholder ntfy config at $ntfy_conf — SET NTFY_TOPIC, or alerts go nowhere."
+  fi
+
+  # --- Dead-man watchdog ---
+  # The backup can shout when a repo fails; it cannot shout when it never runs. The
+  # watchdog checks the heartbeat at 09:00 and covers exactly that hole.
+  if [ -f "$SCRIPT_DIR/scripts/backup-watchdog.sh" ]; then
+    cp "$SCRIPT_DIR/scripts/backup-watchdog.sh" "$watchdog_dest"
+    chmod +x "$watchdog_dest"
+    cat > "$watchdog_plist" <<WPLIST
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>$watchdog_label</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/bin/bash</string>
+        <string>$watchdog_dest</string>
+    </array>
+    <key>StartCalendarInterval</key>
+    <dict>
+        <key>Hour</key>
+        <integer>9</integer>
+        <key>Minute</key>
+        <integer>0</integer>
+    </dict>
+    <key>StandardOutPath</key>
+    <string>$CLAUDE_DIR/logs/launchd-stdout.log</string>
+    <key>StandardErrorPath</key>
+    <string>$CLAUDE_DIR/logs/launchd-stderr.log</string>
+    <key>RunAtLoad</key>
+    <false/>
+</dict>
+</plist>
+WPLIST
+    launchctl unload "$watchdog_plist" 2>/dev/null || true
+    if launchctl load "$watchdog_plist" 2>/dev/null; then
+      print_ok "launchd job '$watchdog_label' loaded (checks the backup heartbeat at 09:00)"
+    else
+      print_warn "Could not load watchdog job. Load it with: launchctl load $watchdog_plist"
+    fi
   fi
 
   # Write the launchd plist (generated so paths match this machine's \$HOME).
