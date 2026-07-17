@@ -31,11 +31,21 @@ The core pass. Find issues whose Linear state lies about reality and propose cor
 
 1. **Pull the candidates.** List issues in started/`In Progress` (and optionally `Todo` that's been touched). These are where drift hides - work finishes but the state never advances.
 2. **Check each against real state.** For each candidate, look for evidence it's actually elsewhere:
-   - **Done?** A merged PR referencing the issue (branch name matches the issue's `gitBranchName`, or the PR/commit mentions `JAD-NN`), a completed deploy, a STATUS/MEMORY note that the work shipped, or a checklist that's fully ticked. → propose **Done** (with the receipt comment, see below).
+   - **Done? (a build ticket needs a LIVE artifact, not a claim.)** For a ticket whose deliverable is *working functionality*: a merged PR referencing the issue AND proof the artifact is actually live — a deploy that responds, an installed launchd agent, a shipped release. **A STATUS/MEMORY note *claiming* it shipped is NOT sufficient for a build ticket** — that is the same recorded-status that can lie (see "Done vs Specc'd" below). For a *doc/decision/audit/spec* ticket: the doc/decision exists. → propose **Done** (with the receipt comment). If the deliverable is working functionality but only a spec/design/plan/dry-run exists → propose **Specc'd**, NOT Done.
    - **Blocked?** Waiting on an external input, a decision, or another unfinished issue. → propose moving to **Blocked**/**Backlog** with a comment naming the blocker, and wire the `blockedBy` relation if the blocker is itself a JAD issue.
    - **Actually still in progress?** Real work in flight, PR open but not merged. → leave it, but note it for the loose-ends sweep (open PR).
 3. **Classify, don't guess.** If the evidence is ambiguous (an issue looks done but you can't find the merge), say so and ask - don't silently flip it. A generic "looks finished" is not a merge locator.
 4. **Present the reconcile table** - issue, current state, proposed state, the evidence - and get approval before any write.
+5. **Audit `Done` too (the fake-Done sweep).** Do NOT trust `Done` - it's where "we decided/specced it" silently masquerades as "it's built and live." Pull `Done` and, for each **build-scoped** ticket, verify the artifact is actually LIVE (an endpoint that responds, an installed launchd agent, a shipped release, applied migrations) - not just a note that says it shipped. Only a spec/design/plan/dry-run exists → propose **Specc'd**. A design/decision ticket that's correctly Done but whose *implementation* was never ticketed → propose creating the missing impl ticket (the worst gap is untracked work that was never even a ticket - e.g. a promotion contract that lived only in MEMORY). Sample cheaply (recently-touched Done first) rather than re-auditing the whole history every pass.
+
+## Done vs Specc'd — the "designed ≠ built" guard
+
+**The failure this prevents (2026-07-16):** many things were marked `Done` when only the *plan/design/decision* was done, hiding unbuilt work; Clark couldn't tell what was actually live. Team **Jadyly Dev Studios** has a **`Specc'd`** state (Started category) for exactly this.
+
+- **`Done`** = a *build* ticket whose functionality is verifiably LIVE (deploy/agent/release + a receipt), OR a *doc/decision/audit* ticket whose document exists.
+- **`Specc'd`** = the design/spec/plan/dry-run is done but the working functionality is NOT built/installed/live yet. Use it instead of `Done` for "designed, not built."
+- **Litmus:** if the ticket's deliverable is working software and you cannot point at the live artifact, it is `Specc'd`, never `Done`. A brief, a dry-run log, or a STATUS/MEMORY note is not a live artifact.
+- **Examples:** JAD-22 (repo-radar: spec + dry-run done, but no launchd agent installed → not running → `Specc'd`); JAD-89 (podcast: idea + feasibility spike, not build-ready → `Specc'd`).
 
 ## Map shipped PRs/commits → Done (with a receipt)
 
